@@ -1,5 +1,5 @@
 {
-  "name": "mac",
+  "name": "dbkit",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
@@ -8,6 +8,8 @@
     "lint": "eslint --fix"
   },
   "dependencies": {
+    "events": "^3.3.0",
+    "fastclick": "^1.0.6",
     "vue": "^3.2.16"
   },
   "devDependencies": {

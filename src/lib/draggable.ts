@@ -1,22 +1,33 @@
+import { EventEmitter } from 'events';
+import Link from './link';
+import LinkOptions from './linkOptions';
+import DraggableOptions from './draggableOptions';
 export class Draggable {
-  maxX: number;
-  maxY: number;
-  draggable: HTMLElement;
-  elementId: string;
-  eventType: string;
-  eventTarget: HTMLElement;
-  mPose: {
+
+  //
+  //
+  //
+  //! private properties
+  //
+  //
+  //
+
+  private element: HTMLElement;
+  private elementPosition: string;
+  private elementSelect: string;
+  private eventType: string;
+  private handle: HTMLElement;
+  private eventTarget: EventTarget;
+  private mPose: {
     x: number,
     y: number
   } = { y: 0, x: 0 };
-  elementPos: {
+  private elementPos: {
     x: number,
     y: number
   } = { y: 0, x: 0 };
-  mirror: HTMLElement;
-  transformer: HTMLElement;
-  mousePressed: boolean;
-  boundingBox: {
+  private mousePressed: boolean;
+  private boundingBox: {
     x: number,
     y: number,
     width: number,
@@ -26,144 +37,222 @@ export class Draggable {
     top: number,
     bottom: number
   };
-  mirrorOffset: {
+  private offsetCoords: {
     top: number,
     left: number
   } = { top: 0, left: 0 };
-  pageCoords: {
+  private pageCoords: {
     x: number,
     y: number
   } = { x: 0, y: 0 };
-  initialOffset: {
+  private animationFrame: number;
+  private lastUpdatedTs: number;
+  private mouseDownTs: number;
+  private mouseUpTs: number;
+  private dragging: boolean;
+  private dragAllowed: boolean;
+  private options: DraggableOptions;
+  private scroll: {
     x: number,
     y: number
   } = { x: 0, y: 0 };
-  cursorOffsetX: number;
-  cursorOffsetY: number;
-  animationFrame: number;
-  lastUpdatedTs: number;
-  mouseDownTs: number;
-  easeEnabled: boolean;
-  dragging: boolean;
-  dragAllowed: boolean;
-  options: any;
-  scroll: {
-    x: number,
-    y: number
-  } = { x: 0, y: 0 };
-  initialScroll = {
+  private initialScroll = {
     x: window.scrollX,
     y: window.scrollY
   };
+  private iterations = 0;
+  private waitTimeout: number;
+  private events: EventEmitter = new EventEmitter();
+  private previousClasses: string[] = [];
+  //TODO make position follow the grid
+  private get calcPos(): { x: number, y: number } {
+    return {
+      x: this.round(Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.options.maxX, this.mPose.x - this.initialOffset.x + this.offsetCoords.left)), this.options.grid),
+      y: this.round(Math.max(-this.initialOffset.y - this.initialScroll.y, Math.min(this.options.maxY, this.mPose.y - this.initialOffset.y + this.offsetCoords.top)), this.options.grid)
+    };
+  }
+  private attachedDraggable: Draggable;
+  private debugBoxEl: HTMLElement;
+  private lastUpdate = 0;
+  private dropElements: HTMLElement[];
+  public initialized = false;
+  public link: Link;
+
+  //
+  //
+  //
+  //! Public getters
+  //
+  //
+  //
 
   public get isTouch(): boolean {
-    return this.eventType === 'touchstart' || this.eventType === 'touchmove';
-  }
-
-  public get calcPos(): { x: number, y: number } {
-    console.log(this.maxY + this.initialScroll.y, this.mPose.y - this.initialOffset.y + this.mirrorOffset.top);
-    return {
-      x: Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.maxX, this.mPose.x - this.initialOffset.x + this.mirrorOffset.left)),
-      y: Math.max(-this.initialOffset.y - this.initialScroll.y, Math.min(this.maxY, this.mPose.y - this.initialOffset.y + this.mirrorOffset.top))
-    };
+    return this.eventType === 'touchstart' || this.eventType === 'touchmove' || this.eventType === 'touchend';
   }
 
   public get posError(): { x: number, y: number } {
     return {
-      x: Math.abs(this.elementPos.x + this.initialOffset.x - this.mPose.x - this.mirrorOffset.left),
-      y: Math.abs(this.elementPos.y + this.initialOffset.y - this.mPose.y - this.mirrorOffset.top)
+      x: Math.abs(this.elementPos.x + this.initialOffset.x - this.mPose.x - this.offsetCoords.left),
+      y: Math.abs(this.elementPos.y + this.initialOffset.y - this.mPose.y - this.offsetCoords.top)
     };
   }
 
-  constructor(element: HTMLElement | string, options: object) {
+  public get interactionPos(): { x: number, y: number } {
+    return this.mPose;
+  }
+
+  public get transformCoords(): { x: number, y: number } {
+    return {
+      x: this.round(this.elementPos.x, this.options.grid),
+      y: this.round(this.elementPos.y, this.options.grid)
+    };
+  }
+
+  public get boundaries(): { x: number, y: number, width: number, height: number, left: number, right: number, top: number, bottom: number } {
+    return this.boundingBox;
+  }
+
+  public get relativeOffset(): { x: number, y: number } {
+    return {
+      x: this.round(this.offsetCoords.left, this.options.grid),
+      y: this.round(this.offsetCoords.top, this.options.grid)
+    };
+  }
+
+  public initialOffset: {
+    x: number,
+    y: number
+  } = { x: 0, y: 0 };
+
+  public get elementCoords(): { x: number, y: number } {
+    return {
+      x: this.initialOffset.x + this.transformCoords.x,
+      y: this.initialOffset.y + this.transformCoords.y
+    };
+  }
+
+  public get nonCorrectedPos(): { x: number, y: number } {
+    return {
+      x: this.round(this.mPose.x + this.initialOffset.x, this.options.grid),
+      y: this.round(this.mPose.y + this.initialOffset.y, this.options.grid)
+    };
+  }
+
+  public get getElement(): HTMLElement {
+    return this.element;
+  }
+
+  //
+  //
+  //
+  //! Constructor
+  //
+  //
+  //
+
+  constructor(element: HTMLElement | string, options: DraggableOptions = {}) {
     this.options = {
-      maxX: document.documentElement.scrollWidth,
-      maxY: document.documentElement.scrollHeight,
+      maxX: Infinity,
+      maxY: Infinity,
       ease: true,
-      holdTime: 100,
+      holdTime: 10,
+      maxIterations: 100,
+      easeTime: 0.05,
+      handle: null,
+      grid: 1,
+      frameRate: 120,
+      dropEl: null,
       ...options
     };
-    this.maxX = this.options.maxX;
-    this.maxY = this.options.maxY;
-    this.easeEnabled = this.options.ease;
-    this.draggable = element instanceof HTMLElement ? element : document.querySelector(element);
+    this.element = element instanceof HTMLElement ? element : document.querySelector(element);
+
+    if (this.options.dropEl instanceof Array && this.options.dropEl.every(el => el instanceof HTMLElement)) {
+      this.dropElements = this.options.dropEl;
+    }
+    else if (this.options.dropEl instanceof HTMLElement) {
+      this.dropElements = [this.options.dropEl];
+    }
+    else if (this.options.dropEl instanceof String) {
+      this.dropElements = Array.from(document.querySelectorAll(this.options.dropEl as string));
+    }
 
     this.initDoc()
-      .then(this.initMirror.bind(this))
       .then(this.getInitialDimentions.bind(this))
-      .then(this.addMirrorProps.bind(this))
-      .then(this.hookEvents.bind(this))
+      .then(this.initElement.bind(this))
+      .then(this.calculateoffsetCoords.bind(this))
       .then(this.getPos.bind(this))
-      .then(this.calculateMirrorOffset.bind(this));
+      .then(this.setPos.bind(this))
+      .then(this.hookEvents.bind(this))
+      .then(this.hookDropEl.bind(this))
+      .then(this.emit.bind(this, 'initialized', this))
+      .then(() => this.initialized = true);
   }
 
-  process(event) {
+  //
+  //
+  //
+  //! Private methods
+  //
+  //
+  //
+
+  private process(event: MouseEvent | TouchEvent): Promise<Draggable> {
     return new Promise((resolve) => {
-      if (this.easeEnabled) {
-        this.ease(event);
-      } else {
-        this.setPos(event);
+      if (Date.now() - this.lastUpdate > 1000 / this.options.frameRate) {
+        this.lastUpdate = Date.now();
+        if (this.options.ease) {
+          this.ease(event);
+        } else {
+          this.setPos(event);
+        }
+        resolve(this);
       }
-      resolve(this);
     });
   }
 
-  initDoc() {
+  private initDoc(): Promise<Draggable> {
     return new Promise((resolve) => {
 
-      const mouseUpdateFn = (event) => {
+      const mouseUpdateFn = (event: MouseEvent) => {
         this.pageCoords = {
-          x: event.clientX ?? event.touches[0].clientX,
-          y: event.clientY ?? event.touches[0].clientY
+          x: event.clientX,
+          y: event.clientY
+        };
+      };
+
+      const touchUpdateFn = (event: TouchEvent) => {
+        this.pageCoords = {
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY
         };
       };
 
       document.addEventListener('mousemove', mouseUpdateFn.bind(this), false);
       document.addEventListener('mouseenter', mouseUpdateFn.bind(this), false);
-      document.addEventListener('touchmove', mouseUpdateFn.bind(this), false);
-      document.addEventListener('touchstart', mouseUpdateFn.bind(this), false);
+      document.addEventListener('touchmove', touchUpdateFn.bind(this), false);
+      document.addEventListener('touchstart', touchUpdateFn.bind(this), false);
       resolve(this);
     });
   }
 
-  initMirror() {
+  private calculateMirrorDimensions(): Promise<Draggable> {
     return new Promise((resolve) => {
-      this.mirror = document.createElement(this.draggable.tagName);
-      this.transformer = document.createElement('div');
-      this.transformer.style.height = '100%';
-      this.transformer.style.width = '100%';
-      this.transformer.innerHTML = this.draggable.innerHTML;
-      this.mirror.appendChild(this.transformer);
-      document.body.appendChild(this.mirror);
-      resolve(this);
-    });
-  }
-
-  calculateMirrorDimensions() {
-    return new Promise((resolve) => {
-      const bounding = this.draggable.getBoundingClientRect();
-      const boundingMirror = this.mirror.getBoundingClientRect();
+      const bounding = this.element.getBoundingClientRect();
       this.scroll = {
         x: window.scrollX,
         y: window.scrollY
       };
-      this.boundingBox = {
-        x: boundingMirror.x,
-        y: boundingMirror.y,
-        width: bounding.width,
-        height: bounding.height,
-        left: boundingMirror.left,
-        right: boundingMirror.right,
-        top: boundingMirror.top,
-        bottom: boundingMirror.bottom
-      };
+      this.boundingBox = bounding;
       resolve(this);
     });
   }
 
-  getInitialDimentions() {
+  private getInitialDimentions(): Promise<Draggable> {
     return new Promise((resolve) => {
-      const bounding = this.draggable.getBoundingClientRect();
+      const display = window.getComputedStyle(this.element).display;
+      this.element.style.display = 'block';
+      const bounding = this.element.getBoundingClientRect();
+
       this.boundingBox = {
         x: bounding.x,
         y: bounding.y,
@@ -182,61 +271,96 @@ export class Draggable {
     });
   }
 
-  getInitialPos() {
+  private hookEvents(): Promise<Draggable> {
     return new Promise((resolve) => {
-      const bounding = this.mirror.getBoundingClientRect();
-      this.boundingBox = {
-        x: bounding.x,
-        y: bounding.y,
-        width: this.boundingBox.width,
-        height: this.boundingBox.height,
-        left: bounding.left,
-        right: bounding.right,
-        top: bounding.top,
-        bottom: bounding.bottom
-      };
+      if (!this.options.handle)
+        this.handle = this.element;
+      else
+        this.handle = this.element.querySelector(this.options.handle);
+
+      this.handle.addEventListener('mousedown', this.drag.bind(this), false);
+      this.handle.addEventListener('touchstart', this.drag.bind(this), false);
+      this.handle.addEventListener('touchmove', this.drag.bind(this), false);
+      this.handle.addEventListener('mousemove', this.drag.bind(this), false);
+      this.handle.addEventListener('mouseup', this.drag.bind(this), false);
+      this.handle.addEventListener('touchend', this.drag.bind(this), false);
+      this.element.addEventListener('mouseover', this.drag.bind(this), false);
       resolve(this);
     });
   }
 
-
-  addMirrorProps() {
-    return new Promise((resolve) => {
-      this.transformer.classList.add(...this.draggable.classList);
-      this.mirror.style.position = 'absolute';
-      this.mirror.style.zIndex = '9999';
-      this.mirror.style.opacity = '0.8';
-      this.mirror.style.width = this.boundingBox.width + 'px';
-      this.mirror.style.height = this.boundingBox.height + 'px';
-      this.mirror.style.left = this.boundingBox.left + 'px';
-      this.mirror.style.top = this.boundingBox.top + 'px';
-      this.mirror.style.cursor = 'grab';
-      this.mirror.classList.add('mirror-elmnt');
-      this.draggable.classList.add('draggable-elmnt');
-      this.transformer.classList.add('transformer-elmnt');
-      resolve(this);
-    });
-  }
-
-  hookEvents() {
-    return new Promise((resolve) => {
-      this.mirror.onmousedown = this.mirror.ontouchstart = this.drag.bind(this);
-      this.mirror.onmousemove = this.mirror.ontouchmove = this.drag.bind(this);
-      this.mirror.onmouseup = this.mirror.ontouchend = this.drag.bind(this);
-      resolve(this);
-    });
-  }
-
-  calculateMirrorOffset(event) {
+  private calculateoffsetCoords(event: MouseEvent | TouchEvent): Promise<Draggable> {
     return new Promise(async (resolve) => {
       await this.calculateMirrorDimensions();
-      this.mirrorOffset.left = this.boundingBox.left + (this.scroll.x - this.initialScroll.x) - this.mPose.x;
-      this.mirrorOffset.top = this.boundingBox.top + (this.scroll.y - this.initialScroll.y) - this.mPose.y;
+      this.offsetCoords.left = this.boundingBox.left + (this.scroll.x - this.initialScroll.x) - this.mPose.x;
+      this.offsetCoords.top = this.boundingBox.top + (this.scroll.y - this.initialScroll.y) - this.mPose.y;
       resolve(this);
     });
   }
 
-  setPos(event) {
+  private updateCycle(event: MouseEvent | TouchEvent): void {
+    const error = this.posError;
+    if (!this.mousePressed && error.x <= this.options.grid && error.y <= this.options.grid && Date.now() - this.mouseDownTs > 100 || this.iterations > this.options.maxIterations) {
+      this.emit('end', this);
+      cancelAnimationFrame(this.animationFrame);
+    }
+    else {
+      this.process(event)
+        .then(this.draw.bind(this))
+        .then(this.iterate.bind(this))
+        .then(this.emit.bind(this, 'moving', this));
+      this.animationFrame = requestAnimationFrame(this.updateCycle.bind(this));
+    }
+
+  }
+
+  private draw(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.element.style.transform = `translate3d(${this.elementPos.x}px, ${this.elementPos.y}px, 0)`;
+      this.lastUpdatedTs = Date.now();
+      resolve(this);
+    });
+  }
+
+  private hookDropEl(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.dropElements?.forEach((el) => {
+        console.log('added drop');
+      });
+      resolve(this);
+    });
+  }
+
+  private initElement(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      if (!this.elementPosition) this.elementPosition = this.element.style.position;
+      this.element.style.position = 'absolute';
+      this.element.style.left = this.initialOffset.x + 'px';
+      this.element.style.top = this.initialOffset.y + 'px';
+      this.element.style.transform = `translate3d(${this.elementCoords.x - this.initialOffset.x}px, ${this.elementCoords.y - this.initialOffset.y}px, 0)`;
+      this.element.classList.add('taptap-elmnt');
+      resolve(this);
+    });
+  }
+
+  //
+  //
+  //
+  //? utility and state management
+  //
+  //
+  //
+
+  private ease(event: MouseEvent | TouchEvent): Promise<Draggable> {
+    return new Promise((resolve) => {
+      const pos = this.calcPos;
+      this.elementPos.x = this.lerp(this.elementPos.x, pos.x, this.options.easeTime);
+      this.elementPos.y = this.lerp(this.elementPos.y, pos.y, this.options.easeTime);
+      resolve(this);
+    });
+  }
+
+  private setPos(event: MouseEvent | TouchEvent): Promise<Draggable> {
     return new Promise((resolve) => {
       const pos = this.calcPos;
       this.elementPos = { x: pos.x, y: pos.y };
@@ -244,71 +368,69 @@ export class Draggable {
     });
   }
 
-  getPos(event) {
+  private getPos(event: MouseEvent | TouchEvent): Promise<Draggable> {
     return new Promise((resolve) => {
-      this.mPose.x = this.pageCoords.x;
-      this.mPose.y = this.pageCoords.y;
-      resolve(this);
+      setTimeout(() => {
+        this.mPose.x = this.pageCoords.x;
+        this.mPose.y = this.pageCoords.y;
+        resolve(this);
+      });
     });
   }
 
-  ease(event) {
-    return new Promise((resolve) => {
-      const pos = this.calcPos;
-      this.elementPos.x = this.lerp(this.elementPos.x, pos.x, 0.05);
-      this.elementPos.y = this.lerp(this.elementPos.y, pos.y, 0.05);
-      resolve(this);
-    });
-  }
-
-  updateCycle(event) {
-    const error = this.posError;
-    if (!this.mousePressed && error.x < 0.1 && error.y < 0.1 && Date.now() - this.mouseDownTs > 100) {
-      cancelAnimationFrame(this.animationFrame);
-    }
-    else {
-      this.process(event)
-        .then(this.draw.bind(this));
-      this.animationFrame = requestAnimationFrame(this.updateCycle.bind(this));
-    }
-
-  }
-
-  draw() {
-    return new Promise((resolve) => {
-      this.mirror.style.transform = `translate3d(${this.elementPos.x}px, ${this.elementPos.y}px, 0)`;
-      this.lastUpdatedTs = Date.now();
-      resolve(this);
-    });
-  }
-
-  lerp(a, b, n) {
+  private lerp(a: number, b: number, n: number): number {
     return (1 - n) * a + n * b;
   }
 
-  wait(ms) {
+  private resetIterations(): Promise<Draggable> {
     return new Promise((resolve) => {
-      setTimeout(() => {
+      this.iterations = 0;
+      resolve(this);
+    });
+  }
+
+  private iterate(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      if (!this.mousePressed)
+        this.iterations++;
+      resolve(this);
+    });
+  }
+
+  private wait(ms: number): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.waitTimeout = setTimeout(() => {
         resolve(this);
       }, ms);
     });
   }
 
-  allowDrag() {
+  private allowDrag(): Promise<Draggable> {
     return new Promise((resolve) => {
       this.dragAllowed = true;
       resolve(this);
     });
   }
 
-  disallowDrag() {
+  private disallowDrag(): Promise<Draggable> {
     return new Promise((resolve) => {
+      clearTimeout(this.waitTimeout);
       this.dragAllowed = false;
       resolve(this);
     });
   }
 
-  hookDocumentEvents(event) {
+  private cycleClass(classes: string[] | string): Promise<Draggable> {
+    return new Promise((resolve) => {
+      const classList = Array.isArray(classes) ? classes : [classes];
+      this.element.classList.remove(...this.previousClasses);
+      this.previousClasses = classList;
+      this.element.classList.add(...classList);
+      resolve(this);
+    });
+  }
+
+  private hookDocumentEvents(event: MouseEvent | TouchEvent): Promise<Draggable> {
     return new Promise((resolve) => {
       document.onmouseup = document.ontouchend = () => {
         this.evtUp(event);
@@ -320,7 +442,7 @@ export class Draggable {
     });
   }
 
-  unhookDocumentEvents() {
+  private unhookDocumentEvents(): Promise<Draggable> {
     return new Promise((resolve) => {
       document.onmouseup = null;
       document.onmousemove = null;
@@ -328,64 +450,96 @@ export class Draggable {
     });
   }
 
-  evtDown(event) {
+  //
+  //
+  //
+  //? link methods
+  //
+  //
+  //
+
+  private receiveLink(link: Link): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.link = link;
+      this.attachedDraggable = this.link.start;
+      resolve(this);
+    });
+  }
+
+  public attachTo(elmt: Draggable, options: LinkOptions): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.link = new Link(options);
+      elmt.receiveLink(this.link);
+      this.link.attachStart(this);
+      this.link.attachEnd(elmt);
+      resolve(this);
+    });
+  }
+
+  //
+  //
+  //
+  //? event handlers
+  //
+  //
+  //
+
+  private emit(event: string, ...args: any): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.events.emit(event, ...args);
+      resolve(this);
+    });
+  }
+
+  private evtDown(event: MouseEvent | TouchEvent): void {
     this.mousePressed = true;
-    this.mirror.style.userSelect = 'none';
+    this.elementSelect = this.element.style.userSelect;
+    this.element.style.userSelect = 'none';
     this.mouseDownTs = Date.now();
 
     this.hookDocumentEvents(event)
+      .then(this.cycleClass.bind(this, 'taptap-hold'))
+      .then(this.emit.bind(this, 'hold', this))
+      .then(this.resetIterations.bind(this))
       .then(this.updateCycle.bind(this))
-      .then(this.wait.bind(this, this.options.holdTime))
       .then(this.getPos.bind(this))
-      .then(this.calculateMirrorOffset.bind(this))
-      .then(this.allowDrag.bind(this));
-
-    document.documentElement.style.cursor = 'grabbing';
-    this.mirror.classList.remove('mirror-up');
-    this.mirror.classList.add('mirror-down');
-    this.draggable.classList.remove('draggable-up');
-    this.draggable.classList.add('draggable-down');
+      .then(this.calculateoffsetCoords.bind(this))
+      .then(this.wait.bind(this, this.options.holdTime))
+      .then(this.allowDrag.bind(this))
+      .then(this.getPos.bind(this))
+      .then(this.cycleClass.bind(this, 'taptap-down'))
+      .then(this.emit.bind(this, 'down', this));
   }
 
-  evtDragging(event) {
+  private evtDragging(event: MouseEvent | TouchEvent): void {
     if (!this.dragAllowed) return;
     this.getPos(event);
     if (!this.dragging) {
       this.dragging = true;
-      this.mirror.classList.remove('mirror-down');
-      this.mirror.classList.add('mirror-dragging');
-      this.draggable.classList.remove('draggable-down');
-      this.draggable.classList.add('draggable-dragging');
+      this.cycleClass('taptap-dragging')
+        .then(this.emit.bind(this, 'dragging', this));
     }
-
   }
 
-  evtUp(event) {
+  private evtUp(event: MouseEvent | TouchEvent): void {
     this.dragging = false;
     this.mousePressed = false;
     document.onmouseup = null;
     document.onmousemove = null;
 
     this.unhookDocumentEvents()
-      .then(this.disallowDrag.bind(this));
+      .then(this.disallowDrag.bind(this))
+      .then(this.cycleClass.bind(this, 'taptap-up'))
+      .then(this.emit.bind(this, 'up', this));
 
-    this.mirror.style.userSelect = 'auto';
-    this.mirror.style.cursor = 'grab';
-    document.documentElement.style.cursor = 'auto';
-    this.mirror.classList.remove('mirror-dragging');
-    this.mirror.classList.add('mirror-up');
-    this.draggable.classList.remove('draggable-dragging');
-    this.draggable.classList.add('draggable-up');
+    this.element.style.userSelect = this.elementSelect;
   }
 
-  drag(event) {
-
+  private drag(event: MouseEvent | TouchEvent): void {
     // event.stopPropagation();
     event.preventDefault();
     this.eventTarget = event.target;
-    this.elementId = event.target.id;
     this.eventType = event.type;
-
     // start drag
     if (!this.mousePressed && (this.eventType == 'mousedown' || this.eventType == 'touchstart')) {
       this.evtDown(event);
@@ -400,6 +554,106 @@ export class Draggable {
     if (this.mousePressed && (this.eventType == 'mouseup' || this.eventType == 'touchend')) {
       this.evtUp(event);
     }
+
+    if ((this.eventType == 'mouseover' || this.eventType == 'touchover')) {
+    }
+  }
+
+  //
+  //}
+  //
+  //!public methods
+  //
+  //
+  //
+
+  public on(event: string, callback: (event: any) => void): void {
+    this.events.on(event, callback);
+  }
+
+  public off(event: string, callback: (event: any) => void): void {
+    this.events.off(event, callback);
+  }
+
+  public once(event: string, callback: (event: any) => void): void {
+    this.events.on(event, callback);
+  }
+
+  public resetPosition(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.element.style.position = this.elementPosition;
+      resolve(this);
+    });
+  }
+
+  public round(x: number, n: number): number {
+    return Math.round((x + Number.EPSILON) / n) * n;
+  }
+
+  public moveTo(x: number, y: number): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.once('end', () => {
+        resolve(this);
+      });
+      this.mPose = {
+        x: x,
+        y: y
+      };
+      this.updateCycle(null);
+    });
+
+  }
+
+  //
+  //
+  //
+  //! desctructor
+  //
+  //
+  //
+
+  public destroy(): void {
+    this.events.removeAllListeners('down');
+    this.events.removeAllListeners('dragging');
+    this.events.removeAllListeners('up');
+    this.events.removeAllListeners('moving');
+    this.events.removeAllListeners('hold');
+    this.link?.destroy();
+    ~this;
+  }
+
+  //
+  //
+  //
+  //! debug methods
+  //
+  //
+  //
+
+  public debugBox(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      if (this.debugBoxEl) document.body.removeChild(this.debugBoxEl);
+      this.debugBoxEl = document.createElement('div');
+      this.debugBoxEl.style.position = 'absolute';
+      this.debugBoxEl.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+      this.debugBoxEl.style.border = '1px solid red';
+      this.debugBoxEl.style.zIndex = '99999';
+      this.debugBoxEl.style.pointerEvents = 'none';
+      this.debugBoxEl.style.height = '20px';
+      this.debugBoxEl.style.width = '20px';
+      this.debugBoxEl.style.top = '0';
+      this.debugBoxEl.style.left = '0';
+      document.body.appendChild(this.debugBoxEl);
+      resolve(this);
+    });
+  }
+
+  public debugBoxMove(coords: { x: number, y: number }): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.debugBoxEl.style.left = `${coords.x}px`;
+      this.debugBoxEl.style.top = `${coords.y}px`;
+      resolve(this);
+    });
   }
 }
 
