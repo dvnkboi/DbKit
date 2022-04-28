@@ -9,6 +9,11 @@ interface DraggableOptions {
   grid?: number;
   frameRate?: number;
   dropEl?: string | HTMLElement | HTMLElement[];
+  disabled?: boolean;
+  initialCoords?: {
+    x: number;
+    y: number;
+  };
 }
 
 export default DraggableOptions;

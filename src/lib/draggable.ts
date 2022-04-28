@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import Link from './link';
 import LinkOptions from './linkOptions';
 import DraggableOptions from './draggableOptions';
+import PointerUtils from './pointerUtils';
 export class Draggable {
 
   //
@@ -15,6 +16,7 @@ export class Draggable {
   private element: HTMLElement;
   private elementPosition: string;
   private elementSelect: string;
+  private isPoint = false;
   private eventType: string;
   private handle: HTMLElement;
   private eventTarget: EventTarget;
@@ -77,6 +79,7 @@ export class Draggable {
   private dropElements: HTMLElement[];
   public initialized = false;
   public link: Link;
+  private disabled;
 
   //
   //
@@ -162,9 +165,11 @@ export class Draggable {
       grid: 1,
       frameRate: 120,
       dropEl: null,
+      initialCoords: { x: 0, y: 0 },
       ...options
     };
     this.element = element instanceof HTMLElement ? element : document.querySelector(element);
+    this.element['__taptap'] = this;
 
     if (this.options.dropEl instanceof Array && this.options.dropEl.every(el => el instanceof HTMLElement)) {
       this.dropElements = this.options.dropEl;
@@ -185,6 +190,7 @@ export class Draggable {
       .then(this.hookEvents.bind(this))
       .then(this.hookDropEl.bind(this))
       .then(this.emit.bind(this, 'initialized', this))
+      .then(this.options.disabled ? this.disable.bind(this) : this.enable.bind(this))
       .then(() => this.initialized = true);
   }
 
@@ -212,6 +218,8 @@ export class Draggable {
 
   private initDoc(): Promise<Draggable> {
     return new Promise((resolve) => {
+
+      this.pageCoords = this.options.initialCoords;
 
       const mouseUpdateFn = (event: MouseEvent) => {
         this.pageCoords = {
@@ -252,6 +260,7 @@ export class Draggable {
       const display = window.getComputedStyle(this.element).display;
       this.element.style.display = 'block';
       const bounding = this.element.getBoundingClientRect();
+      this.element.style.display = display;
 
       this.boundingBox = {
         x: bounding.x,
@@ -300,7 +309,7 @@ export class Draggable {
 
   private updateCycle(event: MouseEvent | TouchEvent): void {
     const error = this.posError;
-    if (!this.mousePressed && error.x <= this.options.grid && error.y <= this.options.grid && Date.now() - this.mouseDownTs > 100 || this.iterations > this.options.maxIterations) {
+    if (!this.mousePressed && error.x <= this.options.grid && error.y <= this.options.grid || this.iterations > this.options.maxIterations) {
       this.emit('end', this);
       cancelAnimationFrame(this.animationFrame);
     }
@@ -337,7 +346,7 @@ export class Draggable {
       this.element.style.position = 'absolute';
       this.element.style.left = this.initialOffset.x + 'px';
       this.element.style.top = this.initialOffset.y + 'px';
-      this.element.style.transform = `translate3d(${this.elementCoords.x - this.initialOffset.x}px, ${this.elementCoords.y - this.initialOffset.y}px, 0)`;
+      this.element.style.transform = `translate3d(${this.transformCoords.x}px, ${this.transformCoords.y}px, 0)`;
       this.element.classList.add('taptap-elmnt');
       resolve(this);
     });
@@ -466,7 +475,7 @@ export class Draggable {
     });
   }
 
-  public attachTo(elmt: Draggable, options: LinkOptions): Promise<Draggable> {
+  public attachTo(elmt: Draggable, options: LinkOptions = {}): Promise<Draggable> {
     return new Promise((resolve) => {
       this.link = new Link(options);
       elmt.receiveLink(this.link);
@@ -532,11 +541,16 @@ export class Draggable {
       .then(this.cycleClass.bind(this, 'taptap-up'))
       .then(this.emit.bind(this, 'up', this));
 
+    this.once('end', () => {
+      this.getPos(event)
+        .then(this.calculateoffsetCoords.bind(this));
+    });
+
     this.element.style.userSelect = this.elementSelect;
   }
 
   private drag(event: MouseEvent | TouchEvent): void {
-    // event.stopPropagation();
+    if (this.disabled) return;
     event.preventDefault();
     this.eventTarget = event.target;
     this.eventType = event.type;
@@ -567,6 +581,20 @@ export class Draggable {
   //
   //
 
+  public disable(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.disabled = true;
+      resolve(this);
+    });
+  }
+
+  public enable(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.disabled = false;
+      resolve(this);
+    });
+  }
+
   public on(event: string, callback: (event: any) => void): void {
     this.events.on(event, callback);
   }
@@ -590,18 +618,85 @@ export class Draggable {
     return Math.round((x + Number.EPSILON) / n) * n;
   }
 
-  public moveTo(x: number, y: number): Promise<Draggable> {
+  public moveTo(x: number, y: number, easing: number = this.options.easeTime): Promise<Draggable> {
     return new Promise((resolve) => {
+      const ease = this.options.easeTime;
       this.once('end', () => {
         resolve(this);
+        this.options.easeTime = ease;
       });
+      this.options.easeTime = easing;
       this.mPose = {
         x: x,
         y: y
       };
       this.updateCycle(null);
     });
+  }
 
+  //get draggable from cursor position
+  public static getDraggableFromPoint(pos: { x: number, y: number }): Promise<Draggable> {
+    return new Promise((resolve) => {
+      let elmt = document.elementFromPoint(pos.x, pos.y);
+      while (elmt && !elmt.classList.contains('taptap-elmnt')) {
+        elmt = elmt.parentElement;
+      }
+      resolve(elmt?.['__taptap']);
+    });
+  }
+
+  public static spawnPoint(pos: { x: number, y: number }, options: DraggableOptions = {}): Promise<Draggable> {
+    return new Promise(async (resolve) => {
+      const el = document.createElement('div');
+      el.style.width = '0px';
+      el.style.height = '0px';
+      el.style.position = 'absolute';
+      el.style.left = '0px';
+      el.style.top = '0px';
+      document.body.appendChild(el);
+      const draggable = new Draggable(el, {
+        initialCoords: {
+          x: pos.x,
+          y: pos.y
+        },
+        ...options,
+      });
+      draggable.isPoint = true;
+      draggable.once('initialized', async () => {
+        resolve(draggable);
+      });
+    });
+  }
+
+  public static spawnActivePoint(pos: { x: number, y: number }, options: DraggableOptions = {}): Promise<Draggable> {
+    return new Promise(async (resolve) => {
+      const el = document.createElement('div');
+      el.style.width = '0px';
+      el.style.height = '0px';
+      el.style.position = 'absolute';
+      el.style.left = '0px';
+      el.style.top = '0px';
+      document.body.appendChild(el);
+      const draggable = new Draggable(el, {
+        initialCoords: {
+          x: pos.x,
+          y: pos.y
+        },
+        ...options,
+      });
+      draggable.isPoint = true;
+      draggable.once('initialized', async () => {
+        draggable.evtDown(PointerUtils.mousedown(pos.x, pos.y));
+        resolve(draggable);
+      });
+
+      const handler = (event: MouseEvent) => {
+        draggable.evtUp(event);
+        document.removeEventListener('mousedown', handler);
+      };
+
+      document.addEventListener('mousedown', handler);
+    });
   }
 
   //
@@ -613,12 +708,13 @@ export class Draggable {
   //
 
   public destroy(): void {
+    this.link?.destroy();
     this.events.removeAllListeners('down');
     this.events.removeAllListeners('dragging');
     this.events.removeAllListeners('up');
     this.events.removeAllListeners('moving');
     this.events.removeAllListeners('hold');
-    this.link?.destroy();
+    if (this.isPoint) this.element.remove();
     ~this;
   }
 

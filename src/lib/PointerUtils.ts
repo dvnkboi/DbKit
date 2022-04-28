@@ -1,12 +1,12 @@
 import { EventEmitter } from 'events';
 
-
 export class PointerUtils {
   private static events = new EventEmitter();
   private static downTs: number;
   private static upTs: number;
   private static longPressDownTo: number;
   private static ignoredEls: HTMLElement[] = [];
+  private static isHooked = false;
 
   public static pageCoords: { x: number; y: number };
   public static isPressed = false;
@@ -14,6 +14,7 @@ export class PointerUtils {
   public static isTouch = false;
 
   public static downPrevent = false;
+  public static doublePrevent = false;
   public static upPrevent = false;
   public static enterPrevent = false;
   public static leavePrevent = false;
@@ -24,7 +25,7 @@ export class PointerUtils {
   public static lockChangePrevent = false;
   public static lockErrorPrevent = false;
   public static contextMenuPrevent = false;
-  public static doubleClickTime = 150;
+  public static doubleClickTime = 250;
   public static longPressTime = 500;
   public static previousCoords: { x: number, y: number } = { x: 0, y: 0 };
   public static moveThreshold = 5;
@@ -38,7 +39,6 @@ export class PointerUtils {
       PointerUtils.ignoredEls = el;
     }
 
-    //push all children of els and their children to ignoredEls
     PointerUtils.ignoredEls.forEach(el => {
       const children = el.querySelectorAll('*');
       for (let i = 0; i < children.length; i++) {
@@ -74,6 +74,8 @@ export class PointerUtils {
   }
 
   public static hook() {
+    if (PointerUtils.isHooked) return;
+    PointerUtils.isHooked = true;
     document.body.addEventListener('pointerdown', this.pointerDownFn.bind(this), false);
     document.body.addEventListener('pointerup', this.pointerUpFn.bind(this), false);
     document.body.addEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
@@ -95,15 +97,11 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
-
     document.body.releasePointerCapture(e.pointerId);
     PointerUtils.isPressed = true;
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
 
-
-    //long press
     PointerUtils.isLongPress = false;
     const prevTs = PointerUtils.downTs;
     PointerUtils.downTs = Date.now();
@@ -116,13 +114,14 @@ export class PointerUtils {
     }, PointerUtils.longPressTime);
 
 
-    //double click
     if (PointerUtils.downTs - prevTs < PointerUtils.doubleClickTime) {
+      if (PointerUtils.doublePrevent) {
+        e.preventDefault();
+      }
       PointerUtils.events.emit('doubleClick', e);
       PointerUtils.doubleClickCb(e);
     }
 
-    //normal mouseDown
     PointerUtils.events.emit('pointerdown', e);
     PointerUtils.downCb(e);
     return Promise.resolve(e);
@@ -136,7 +135,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
 
@@ -147,7 +145,6 @@ export class PointerUtils {
     if (e.pointerType === 'touch') {
       PointerUtils.isTouch = true;
 
-      //workarround for opening the context menu on touch devices
       if (PointerUtils.upTs - PointerUtils.downTs > 500) {
         if (PointerUtils.contextMenuPrevent) e.preventDefault();
       }
@@ -173,7 +170,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -191,7 +187,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -209,7 +204,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
 
@@ -234,7 +228,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -252,7 +245,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -270,7 +262,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -288,7 +279,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -306,7 +296,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     document.body.releasePointerCapture(e.pointerId);
@@ -324,7 +313,6 @@ export class PointerUtils {
 
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    //touch
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     if (e.pointerType != "touch") {
@@ -337,6 +325,7 @@ export class PointerUtils {
   }
 
   public static destroy(): void {
+    PointerUtils.isHooked = false;
     document.body.removeEventListener('pointerdown', this.pointerDownFn.bind(this), false);
     document.body.removeEventListener('pointerup', this.pointerUpFn.bind(this), false);
     document.body.removeEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
@@ -370,7 +359,51 @@ export class PointerUtils {
     return Math.min(Math.max(value, min), max);
   }
 
+  public static click(x: number, y: number): MouseEvent {
+    const evt = new MouseEvent('click', {
+      clientX: x,
+      clientY: y
+    });
+    (document.elementFromPoint(x, y)).dispatchEvent(evt);
+    return evt;
+  }
 
+  public static mousedown(x: number, y: number): MouseEvent {
+    const evt = new MouseEvent('mousedown', {
+      clientX: x,
+      clientY: y
+    });
+    (document.elementFromPoint(x, y)).dispatchEvent(evt);
+    return evt;
+  }
+
+  public static mouseup(x: number, y: number): MouseEvent {
+    const evt = new MouseEvent('mouseup', {
+      clientX: x,
+      clientY: y
+    });
+    (document.elementFromPoint(x, y)).dispatchEvent(evt);
+    return evt;
+  }
+
+  public static mousemove(x: number, y: number): MouseEvent {
+    const evt = new MouseEvent('mousemove', {
+      clientX: x,
+      clientY: y
+    });
+    (document.elementFromPoint(x, y)).dispatchEvent(evt);
+    return evt;
+  }
+
+  public static mousewheel(x: number, y: number, delta: number): WheelEvent {
+    const evt = new WheelEvent('wheel', {
+      clientX: x,
+      clientY: y,
+      deltaY: delta
+    });
+    (document.elementFromPoint(x, y)).dispatchEvent(evt);
+    return evt;
+  }
 }
 
 export default PointerUtils;

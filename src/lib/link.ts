@@ -4,7 +4,7 @@ import { TextOptions } from './linkOptions';
 import Options from './linkOptions';
 
 export class Link {
-  // create svg link between two elements with 
+  // create svg link between two elements with
   public start: Draggable;
   public end: Draggable;
   private svg: SVGElement;
@@ -396,6 +396,31 @@ export class Link {
     });
   }
 
+  public static initiateLink(event: PointerEvent, options: Options = {}): Promise<Link> {
+    return new Promise(async (resolve) => {
+
+      const startPoint = await Draggable.spawnPoint(event);
+      const endPoint = await Draggable.spawnActivePoint(event);
+      startPoint.attachTo(endPoint, {
+        ...options,
+        innerOffsetEnd: 5,
+        innerOffsetStart: 5,
+      });
+
+      endPoint.once('up', async (draggable: Draggable) => {
+        const start = await Draggable.getDraggableFromPoint(startPoint.nonCorrectedPos);
+        const end = await Draggable.getDraggableFromPoint(endPoint.nonCorrectedPos);
+        if (start && end) {
+          start.attachTo(end, options);
+          start.link.update();
+        }
+        startPoint.destroy();
+        endPoint.destroy();
+        resolve(start?.link);
+      });
+    });
+  }
+
   public attachStart(draggable: Draggable): Promise<Link> {
     return new Promise((resolve) => {
       this.start = draggable;
@@ -540,12 +565,17 @@ export class Link {
 
   public update(): Promise<Link> {
     return new Promise((resolve) => {
-      this.updateCoords()
-        .then(this.updateCurveCoords.bind(this))
-        .then(this.updateSvg.bind(this))
-        .then(this.updateElements.bind(this))
-        .then(resolve.bind(this, this))
-        .then(this.emit.bind(this, 'update'));
+      if (this.start && this.end) {
+        this.updateCoords()
+          .then(this.updateCurveCoords.bind(this))
+          .then(this.updateSvg.bind(this))
+          .then(this.updateElements.bind(this))
+          .then(this.emit.bind(this, 'update'))
+          .then(resolve.bind(this, this));
+      }
+      else {
+        resolve(this);
+      }
     });
   }
 
@@ -578,6 +608,9 @@ export class Link {
   }
 
   public destroy(): void {
+    this.linkStartEl.remove();
+    this.linkEndEl.remove();
+    this.linkMidEl.remove();
     this.path.remove();
     this.svg.remove();
     ~this;
