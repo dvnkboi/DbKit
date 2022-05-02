@@ -3,7 +3,7 @@
     <div ref="playGroundContainer" class="w-full h-screen overflow-auto">
       <div ref="playGround" class="w-[10000px] h-[10000px] relative flex-none bg-grayish-900">
         <transition-group name="fade" appear>
-          <entity @destroyed="deleteEntity" :index="index" :event="entity.event" :id="entity.id" :key="entity.id"
+          <rawEntity @destroyed="deleteEntity" :index="index" :event="entity.event" :id="entity.id" :key="entity.id"
             v-for="entity, index in entities.values()" />
         </transition-group>
         <rightClick @createNew="addEntity" />
@@ -27,13 +27,15 @@
 </template>
 
 <script setup lang='ts'>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, markRaw } from 'vue';
 import rightClick from '../components/rightClick.vue';
 import entity from '../components/entity.vue';
 import sidebar from '../components/sidebar.vue';
 import Draggable from '../lib/draggable';
 import { useEntities } from '../store/useEntities';
 import { storeToRefs } from 'pinia';
+
+const rawEntity = markRaw(entity);
 
 const playGroundContainer = ref(null);
 const playGround = ref(null);
