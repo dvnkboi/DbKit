@@ -21,6 +21,7 @@ interface LinkOptions {
   linkStartText?: TextOptions;
   linkEndText?: TextOptions;
   linkMidText?: TextOptions;
+  sideSwitchThreshold?: number;
 }
 
 export default LinkOptions;

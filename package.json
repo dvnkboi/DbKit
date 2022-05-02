@@ -8,8 +8,11 @@
     "lint": "eslint --fix"
   },
   "dependencies": {
+    "@headlessui/vue": "^1.6.0",
     "events": "^3.3.0",
     "fastclick": "^1.0.6",
+    "pinia": "^2.0.13",
+    "remixicon": "^2.5.0",
     "vue": "^3.2.16"
   },
   "devDependencies": {

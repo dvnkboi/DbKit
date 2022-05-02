@@ -7,6 +7,15 @@ export class Link {
   // create svg link between two elements with
   public start: Draggable;
   public end: Draggable;
+  private get id(): string {
+    return this.start.generateLinkId(this.end);
+  }
+  private get startLinkIndex(): number {
+    return this.start.links.get(this.id)?.index + 0.5 || 0;
+  }
+  private get endLinkIndex(): number {
+    return this.end.links.get(this.id)?.index + 0.5 || 0;
+  }
   private svg: SVGElement;
   private path: SVGPathElement;
   private startCoords: { x: number, y: number } = { x: 0, y: 0 };
@@ -28,7 +37,6 @@ export class Link {
   private linkEndElDimensions: DOMRect;
   private linkMidElDimensions: DOMRect;
   private events = new EventEmitter();
-
   private get svgPath(): { d: string } {
     return {
       d: `M ${this.startCoords.x},${this.startCoords.y} C ${this.curveStartCoords.x},${this.curveStartCoords.y},${this.curveEndCoords.x},${this.curveEndCoords.y} ${this.endCoords.x},${this.endCoords.y}`
@@ -40,29 +48,32 @@ export class Link {
     end: { x: number, y: number, side: string }
   } {
     const diff = {
-      x: this.endCoords.x - this.startCoords.x,
-      y: this.endCoords.y - this.startCoords.y
+      x: this.end.elementCoords.x - this.start.elementCoords.x,
+      y: this.end.elementCoords.y - this.start.elementCoords.y
     };
 
     //compare the difference between current difference and previous diff to prevent flickering
-    if (Date.now() - this.lastSideSwitchTs < 200 || Math.abs(diff.x - this.previousStartDiff.x) < 300 && Math.abs(diff.y - this.previousStartDiff.y) < 300) {
+    if (Date.now() - this.lastSideSwitchTs < 200 || Math.abs(diff.x - this.previousStartDiff.x) < this.options.sideSwitchThreshold && Math.abs(diff.y - this.previousStartDiff.y) < this.options.sideSwitchThreshold) {
       return this.previousStartSide;
     }
 
     this.previousStartDiff = diff;
     this.lastSideSwitchTs = Date.now();
 
+    const startSideOffset = this.startLinkIndex / 5;
+    const endSideOffset = this.endLinkIndex / 5;
+
     if (Math.abs(diff.x) > Math.abs(diff.y)) {
       if (diff.x > 0.1) {
         this.previousStartSide = {
           start: {
             x: this.start.boundaries.width - this.options.innerOffsetStart,
-            y: this.start.boundaries.height / 2,
+            y: this.start.boundaries.height * startSideOffset,
             side: 'right'
           },
           end: {
             x: this.options.innerOffsetEnd,
-            y: this.end.boundaries.height / 2,
+            y: this.end.boundaries.height * endSideOffset,
             side: 'left'
           }
         };
@@ -72,12 +83,12 @@ export class Link {
         this.previousStartSide = {
           start: {
             x: this.options.innerOffsetStart,
-            y: this.start.boundaries.height / 2,
+            y: this.start.boundaries.height * startSideOffset,
             side: 'left'
           },
           end: {
             x: this.end.boundaries.width - this.options.innerOffsetEnd,
-            y: this.end.boundaries.height / 2,
+            y: this.end.boundaries.height * endSideOffset,
             side: 'right'
           }
         };
@@ -88,12 +99,12 @@ export class Link {
       if (diff.y > 0.1) {
         this.previousStartSide = {
           start: {
-            x: this.start.boundaries.width / 2,
+            x: this.start.boundaries.width * startSideOffset,
             y: this.start.boundaries.height - this.options.innerOffsetStart,
             side: 'bottom'
           },
           end: {
-            x: this.end.boundaries.width / 2,
+            x: this.end.boundaries.width * endSideOffset,
             y: this.options.innerOffsetEnd,
             side: 'top'
           }
@@ -103,12 +114,12 @@ export class Link {
       else {
         this.previousStartSide = {
           start: {
-            x: this.start.boundaries.width / 2,
+            x: this.start.boundaries.width * startSideOffset,
             y: this.options.innerOffsetStart,
             side: 'top'
           },
           end: {
-            x: this.end.boundaries.width / 2,
+            x: this.end.boundaries.width * endSideOffset,
             y: this.end.boundaries.height - this.options.innerOffsetEnd,
             side: 'bottom'
           }
@@ -207,14 +218,15 @@ export class Link {
     this.options = {
       fill: 'none',
       stroke: '#000',
-      strokeWidth: 1,
+      strokeWidth: 2,
       innerOffsetStart: -15,
       innerOffsetEnd: -15,
       curve: 0.7,
       updateOnEnd: false,
       opacity: 1,
-      dash: [5, 5],
+      dash: [0, 0],
       linkStartSide: 'left',
+      sideSwitchThreshold: 50,
       ...options
     };
 
@@ -262,8 +274,8 @@ export class Link {
       this.svg.style.position = 'absolute';
       this.svg.style.top = '0';
       this.svg.style.left = '0';
-      this.svg.setAttribute('width', '100%');
-      this.svg.setAttribute('height', '100%');
+      // this.svg.setAttribute('width', '0');
+      // this.svg.setAttribute('height', '0');
       this.svg.style.pointerEvents = 'none';
       this.path.setAttribute('stroke', this.options.stroke);
       this.path.setAttribute('stroke-width', this.options.strokeWidth.toString());
@@ -396,27 +408,57 @@ export class Link {
     });
   }
 
-  public static initiateLink(event: PointerEvent, options: Options = {}): Promise<Link> {
+  public static initiateLink(event: PointerEvent, options: Options = {}, attachingLinkOptions: Options = {}): Promise<Link> {
     return new Promise(async (resolve) => {
 
-      const startPoint = await Draggable.spawnPoint(event);
-      const endPoint = await Draggable.spawnActivePoint(event);
+      const startPoint = await Draggable.spawnPoint({ x: event.pageX, y: event.pageY });
+      const endPoint = await Draggable.spawnActivePoint({ x: event.pageX, y: event.pageY });
+
+      attachingLinkOptions = {
+        updateOnEnd: false,
+        innerOffsetEnd: 0,
+        innerOffsetStart: 0,
+        strokeWidth: 3,
+        dash: [1, 7],
+        stroke: 'rgb(100, 170, 246)',
+        linkStartText: {
+          ...options.linkStartText,
+          fontColor: 'rgb(100, 170, 246)',
+        },
+        linkMidText: {
+          ...options.linkMidText,
+          fontColor: 'rgb(100, 170, 246)',
+        },
+        linkEndText: {
+          ...options.linkEndText,
+          fontColor: 'rgb(100, 170, 246)',
+        },
+        ...attachingLinkOptions,
+      };
+
       startPoint.attachTo(endPoint, {
         ...options,
-        innerOffsetEnd: 5,
-        innerOffsetStart: 5,
+        ...attachingLinkOptions,
       });
 
-      endPoint.once('up', async (draggable: Draggable) => {
+      endPoint.once('up', async () => {
         const start = await Draggable.getDraggableFromPoint(startPoint.nonCorrectedPos);
         const end = await Draggable.getDraggableFromPoint(endPoint.nonCorrectedPos);
+        let link: Link;
         if (start && end) {
-          start.attachTo(end, options);
-          start.link.update();
+          let id = start.generateLinkId(end);
+          link = start.links.get(id)?.link;
+          link?.destroy();
+          await start.attachTo(end, options);
+          id = start.generateLinkId(end);
+          link = await start.links.get(id)?.link;
+          link?.update();
+          start.release();
+          end.release();
         }
         startPoint.destroy();
         endPoint.destroy();
-        resolve(start?.link);
+        resolve(link);
       });
     });
   }
@@ -608,6 +650,8 @@ export class Link {
   }
 
   public destroy(): void {
+    this.start.links.delete(this.id);
+    this.end.links.delete(this.id);
     this.linkStartEl.remove();
     this.linkEndEl.remove();
     this.linkMidEl.remove();

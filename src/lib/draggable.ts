@@ -3,6 +3,7 @@ import Link from './link';
 import LinkOptions from './linkOptions';
 import DraggableOptions from './draggableOptions';
 import PointerUtils from './pointerUtils';
+
 export class Draggable {
 
   //
@@ -13,7 +14,9 @@ export class Draggable {
   //
   //
 
+  private parent: HTMLElement;
   private element: HTMLElement;
+  public readonly id: number | string;
   private elementPosition: string;
   private elementSelect: string;
   private isPoint = false;
@@ -59,26 +62,26 @@ export class Draggable {
     y: number
   } = { x: 0, y: 0 };
   private initialScroll = {
-    x: window.scrollX,
-    y: window.scrollY
+    x: 0,
+    y: 0
   };
   private iterations = 0;
   private waitTimeout: number;
-  private events: EventEmitter = new EventEmitter();
+  private events = new EventEmitter();
   private previousClasses: string[] = [];
   //TODO make position follow the grid
   private get calcPos(): { x: number, y: number } {
     return {
-      x: this.round(Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.options.maxX, this.mPose.x - this.initialOffset.x + this.offsetCoords.left)), this.options.grid),
-      y: this.round(Math.max(-this.initialOffset.y - this.initialScroll.y, Math.min(this.options.maxY, this.mPose.y - this.initialOffset.y + this.offsetCoords.top)), this.options.grid)
+      x: this.round(Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.options.maxX - this.boundingBox.width, this.mPose.x - this.initialOffset.x + this.offsetCoords.left)), this.options.grid),
+      y: this.round(Math.max(-this.initialOffset.y - this.initialScroll.y, Math.min(this.options.maxY - this.boundingBox.height, this.mPose.y - this.initialOffset.y + this.offsetCoords.top)), this.options.grid)
     };
   }
-  private attachedDraggable: Draggable;
+  public attached = new Map<string | number, Draggable>();
   private debugBoxEl: HTMLElement;
   private lastUpdate = 0;
   private dropElements: HTMLElement[];
   public initialized = false;
-  public link: Link;
+  public links: Map<string, { link: Link, index: number }>;
   private disabled;
 
   //
@@ -129,8 +132,8 @@ export class Draggable {
 
   public get elementCoords(): { x: number, y: number } {
     return {
-      x: this.initialOffset.x + this.transformCoords.x,
-      y: this.initialOffset.y + this.transformCoords.y
+      x: this.initialOffset.x + this.transformCoords.x + this.initialScroll.x,
+      y: this.initialOffset.y + this.transformCoords.y + this.initialScroll.y
     };
   }
 
@@ -166,10 +169,20 @@ export class Draggable {
       frameRate: 120,
       dropEl: null,
       initialCoords: { x: 0, y: 0 },
+      id: Date.now(),
       ...options
     };
+
     this.element = element instanceof HTMLElement ? element : document.querySelector(element);
     this.element['__taptap'] = this;
+    this.id = this.options.id;
+    this.parent = PointerUtils.getScrollableParent(this.element);
+    this.links = new Map<string, { link: Link, index: number }>();
+
+    this.initialScroll = {
+      x: this.parent.scrollLeft,
+      y: this.parent.scrollTop
+    };
 
     if (this.options.dropEl instanceof Array && this.options.dropEl.every(el => el instanceof HTMLElement)) {
       this.dropElements = this.options.dropEl;
@@ -183,15 +196,15 @@ export class Draggable {
 
     this.initDoc()
       .then(this.getInitialDimentions.bind(this))
-      .then(this.initElement.bind(this))
       .then(this.calculateoffsetCoords.bind(this))
       .then(this.getPos.bind(this))
       .then(this.setPos.bind(this))
+      .then(this.initElement.bind(this))
       .then(this.hookEvents.bind(this))
       .then(this.hookDropEl.bind(this))
-      .then(this.emit.bind(this, 'initialized', this))
       .then(this.options.disabled ? this.disable.bind(this) : this.enable.bind(this))
-      .then(() => this.initialized = true);
+      .then(() => this.initialized = true)
+      .then(this.emit.bind(this, 'initialized', this));
   }
 
   //
@@ -219,19 +232,22 @@ export class Draggable {
   private initDoc(): Promise<Draggable> {
     return new Promise((resolve) => {
 
-      this.pageCoords = this.options.initialCoords;
+      this.pageCoords = {
+        x: this.options.initialCoords.x,
+        y: this.options.initialCoords.y
+      };
 
       const mouseUpdateFn = (event: MouseEvent) => {
         this.pageCoords = {
-          x: event.clientX,
-          y: event.clientY
+          x: event.pageX,
+          y: event.pageY
         };
       };
 
       const touchUpdateFn = (event: TouchEvent) => {
         this.pageCoords = {
-          x: event.touches[0].clientX,
-          y: event.touches[0].clientY
+          x: event.touches[0].pageX,
+          y: event.touches[0].pageY
         };
       };
 
@@ -247,8 +263,8 @@ export class Draggable {
     return new Promise((resolve) => {
       const bounding = this.element.getBoundingClientRect();
       this.scroll = {
-        x: window.scrollX,
-        y: window.scrollY
+        x: this.parent.scrollLeft,
+        y: this.parent.scrollTop
       };
       this.boundingBox = bounding;
       resolve(this);
@@ -292,6 +308,7 @@ export class Draggable {
       this.handle.addEventListener('touchmove', this.drag.bind(this), false);
       this.handle.addEventListener('mousemove', this.drag.bind(this), false);
       this.handle.addEventListener('mouseup', this.drag.bind(this), false);
+      this.element.addEventListener('mouseup', this.drag.bind(this), false);
       this.handle.addEventListener('touchend', this.drag.bind(this), false);
       this.element.addEventListener('mouseover', this.drag.bind(this), false);
       resolve(this);
@@ -344,8 +361,8 @@ export class Draggable {
     return new Promise((resolve) => {
       if (!this.elementPosition) this.elementPosition = this.element.style.position;
       this.element.style.position = 'absolute';
-      this.element.style.left = this.initialOffset.x + 'px';
-      this.element.style.top = this.initialOffset.y + 'px';
+      this.element.style.left = '0px';
+      this.element.style.top = '0px';
       this.element.style.transform = `translate3d(${this.transformCoords.x}px, ${this.transformCoords.y}px, 0)`;
       this.element.classList.add('taptap-elmnt');
       resolve(this);
@@ -467,21 +484,45 @@ export class Draggable {
   //
   //
 
-  private receiveLink(link: Link): Promise<Draggable> {
+  private receiveLink(sender: Draggable, link: Link): Promise<Draggable> {
     return new Promise((resolve) => {
-      this.link = link;
-      this.attachedDraggable = this.link.start;
-      resolve(this);
+      const id = this.generateLinkId(sender);
+      if (this.links.has(id)) resolve(this);
+      else {
+        this.links.set(id, { link, index: this.links.size });
+        this.attached.set(sender.id, sender);
+        this.emit('linked', sender).then(resolve.bind(this, sender));
+      }
     });
   }
 
   public attachTo(elmt: Draggable, options: LinkOptions = {}): Promise<Draggable> {
-    return new Promise((resolve) => {
-      this.link = new Link(options);
-      elmt.receiveLink(this.link);
-      this.link.attachStart(this);
-      this.link.attachEnd(elmt);
-      resolve(this);
+    return new Promise(async (resolve) => {
+      const id = this.generateLinkId(elmt);
+      if (this.links.has(id) || elmt.links.has(id)) {
+        resolve(elmt);
+      }
+      else {
+        const link = new Link(options);
+        link.attachStart(this);
+        link.attachEnd(elmt);
+        this.links.set(id, { link, index: this.links.size });
+        elmt.receiveLink(this, link);
+        this.attached.set(elmt.id, elmt);
+        this.emit('linked', elmt).then(resolve.bind(this, elmt));
+      }
+    });
+  }
+
+  public generateLinkId(elmt: Draggable | string | number): string {
+    const id = elmt instanceof Draggable ? elmt.id : elmt;
+    if (typeof this.id == 'string' && typeof id == 'string') return this.id + '-' + id;
+    return id > this.id ? this.id + '-' + id : id + '-' + this.id;
+  }
+
+  public updateLinkPositions() {
+    this.links.forEach((link) => {
+      link.link.update();
     });
   }
 
@@ -492,6 +533,10 @@ export class Draggable {
   //
   //
   //
+
+  public release() {
+    this.evtUp(null);
+  }
 
   private emit(event: string, ...args: any): Promise<Draggable> {
     return new Promise((resolve) => {
@@ -618,14 +663,17 @@ export class Draggable {
     return Math.round((x + Number.EPSILON) / n) * n;
   }
 
-  public moveTo(x: number, y: number, easing: number = this.options.easeTime): Promise<Draggable> {
+  public moveTo(x: number, y: number, easing: number = this.options.easeTime, noMaxIterations = false): Promise<Draggable> {
     return new Promise((resolve) => {
       const ease = this.options.easeTime;
+      const maxIterations = this.options.maxIterations;
       this.once('end', () => {
         resolve(this);
         this.options.easeTime = ease;
+        this.options.maxIterations = maxIterations;
       });
       this.options.easeTime = easing;
+      this.options.maxIterations = noMaxIterations && maxIterations < 250 ? 250 : maxIterations;
       this.mPose = {
         x: x,
         y: y
@@ -655,11 +703,8 @@ export class Draggable {
       el.style.top = '0px';
       document.body.appendChild(el);
       const draggable = new Draggable(el, {
-        initialCoords: {
-          x: pos.x,
-          y: pos.y
-        },
         ...options,
+        initialCoords: pos
       });
       draggable.isPoint = true;
       draggable.once('initialized', async () => {
@@ -678,11 +723,8 @@ export class Draggable {
       el.style.top = '0px';
       document.body.appendChild(el);
       const draggable = new Draggable(el, {
-        initialCoords: {
-          x: pos.x,
-          y: pos.y
-        },
         ...options,
+        initialCoords: pos
       });
       draggable.isPoint = true;
       draggable.once('initialized', async () => {
@@ -708,14 +750,16 @@ export class Draggable {
   //
 
   public destroy(): void {
-    this.link?.destroy();
+    for (const linkObj of this.links.values()) {
+      linkObj.link?.destroy();
+    }
     this.events.removeAllListeners('down');
     this.events.removeAllListeners('dragging');
     this.events.removeAllListeners('up');
     this.events.removeAllListeners('moving');
     this.events.removeAllListeners('hold');
     if (this.isPoint) this.element.remove();
-    ~this;
+    this.emit('destroy');
   }
 
   //

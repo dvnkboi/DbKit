@@ -76,17 +76,17 @@ export class PointerUtils {
   public static hook() {
     if (PointerUtils.isHooked) return;
     PointerUtils.isHooked = true;
-    document.body.addEventListener('pointerdown', this.pointerDownFn.bind(this), false);
-    document.body.addEventListener('pointerup', this.pointerUpFn.bind(this), false);
-    document.body.addEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
-    document.body.addEventListener('pointerleave', this.pointerLeaveFn.bind(this), false);
-    document.body.addEventListener('pointermove', this.pointerMoveFn.bind(this), false);
-    document.body.addEventListener('pointercancel', this.pointerCancelFn.bind(this), false);
-    document.body.addEventListener('pointerout', this.pointerOutFn.bind(this), false);
-    document.body.addEventListener('pointerover', this.pointerOverFn.bind(this), false);
-    document.body.addEventListener('pointerlockchange', this.pointerLockChangeFn.bind(this), false);
-    document.body.addEventListener('pointerlockerror', this.pointerLockErrorFn.bind(this), false);
-    document.body.addEventListener('contextmenu', this.pointerContextMenuFn.bind(this), false);
+    document.documentElement.addEventListener('pointerdown', this.pointerDownFn.bind(this), false);
+    document.documentElement.addEventListener('pointerup', this.pointerUpFn.bind(this), false);
+    document.documentElement.addEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
+    document.documentElement.addEventListener('pointerleave', this.pointerLeaveFn.bind(this), false);
+    document.documentElement.addEventListener('pointermove', this.pointerMoveFn.bind(this), false);
+    document.documentElement.addEventListener('pointercancel', this.pointerCancelFn.bind(this), false);
+    document.documentElement.addEventListener('pointerout', this.pointerOutFn.bind(this), false);
+    document.documentElement.addEventListener('pointerover', this.pointerOverFn.bind(this), false);
+    document.documentElement.addEventListener('pointerlockchange', this.pointerLockChangeFn.bind(this), false);
+    document.documentElement.addEventListener('pointerlockerror', this.pointerLockErrorFn.bind(this), false);
+    document.documentElement.addEventListener('contextmenu', this.pointerContextMenuFn.bind(this), false);
   }
 
   private static pointerDownFn(e: PointerEvent): Promise<PointerEvent> {
@@ -98,7 +98,7 @@ export class PointerUtils {
     if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.isPressed = true;
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
 
@@ -150,7 +150,7 @@ export class PointerUtils {
       }
     }
     else {
-      document.body.releasePointerCapture(e.pointerId);
+      document.documentElement.releasePointerCapture(e.pointerId);
     }
     if (PointerUtils.longPressOnUp && !PointerUtils.isLongPress && PointerUtils.upTs - PointerUtils.downTs > PointerUtils.longPressTime) {
       PointerUtils.longPressCb(e);
@@ -172,7 +172,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerenter', e);
     PointerUtils.enterCb(e);
@@ -189,7 +189,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerleave', e);
     PointerUtils.leaveCb(e);
@@ -214,7 +214,7 @@ export class PointerUtils {
       PointerUtils.isLongPress = false;
     }
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.events.emit('pointermove', e);
     PointerUtils.moveCb(e);
     return Promise.resolve(e);
@@ -230,7 +230,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointercancel', e);
     PointerUtils.cancelCb(e);
@@ -247,7 +247,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerout', e);
     PointerUtils.outCb(e);
@@ -264,7 +264,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerover', e);
     PointerUtils.overCb(e);
@@ -281,7 +281,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerlockchange', e);
     PointerUtils.lockChangeCb(e);
@@ -298,7 +298,7 @@ export class PointerUtils {
 
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
-    document.body.releasePointerCapture(e.pointerId);
+    document.documentElement.releasePointerCapture(e.pointerId);
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('pointerlockerror', e);
     PointerUtils.lockErrorCb(e);
@@ -316,7 +316,7 @@ export class PointerUtils {
     e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
 
     if (e.pointerType != "touch") {
-      document.body.releasePointerCapture(e.pointerId);
+      document.documentElement.releasePointerCapture(e.pointerId);
     }
     PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
     PointerUtils.events.emit('contextmenu', e);
@@ -326,17 +326,17 @@ export class PointerUtils {
 
   public static destroy(): void {
     PointerUtils.isHooked = false;
-    document.body.removeEventListener('pointerdown', this.pointerDownFn.bind(this), false);
-    document.body.removeEventListener('pointerup', this.pointerUpFn.bind(this), false);
-    document.body.removeEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
-    document.body.removeEventListener('pointerleave', this.pointerLeaveFn.bind(this), false);
-    document.body.removeEventListener('pointermove', this.pointerMoveFn.bind(this), false);
-    document.body.removeEventListener('pointercancel', this.pointerCancelFn.bind(this), false);
-    document.body.removeEventListener('pointerout', this.pointerOutFn.bind(this), false);
-    document.body.removeEventListener('pointerover', this.pointerOverFn.bind(this), false);
-    document.body.removeEventListener('pointerlockchange', this.pointerLockChangeFn.bind(this), false);
-    document.body.removeEventListener('pointerlockerror', this.pointerLockErrorFn.bind(this), false);
-    document.body.removeEventListener('contextmenu', this.pointerContextMenuFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerdown', this.pointerDownFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerup', this.pointerUpFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerleave', this.pointerLeaveFn.bind(this), false);
+    document.documentElement.removeEventListener('pointermove', this.pointerMoveFn.bind(this), false);
+    document.documentElement.removeEventListener('pointercancel', this.pointerCancelFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerout', this.pointerOutFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerover', this.pointerOverFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerlockchange', this.pointerLockChangeFn.bind(this), false);
+    document.documentElement.removeEventListener('pointerlockerror', this.pointerLockErrorFn.bind(this), false);
+    document.documentElement.removeEventListener('contextmenu', this.pointerContextMenuFn.bind(this), false);
   }
 
   public static lerp(a: number, b: number, t: number): number {
@@ -403,6 +403,34 @@ export class PointerUtils {
     });
     (document.elementFromPoint(x, y)).dispatchEvent(evt);
     return evt;
+  }
+
+  public static changeEventCoords(e: PointerEvent, pos: { x: number, y: number }): Promise<PointerEvent> {
+    const evt = new PointerEvent(e.type, {
+      ...e,
+      clientX: pos.x,
+      clientY: pos.y,
+      screenX: pos.x,
+      screenY: pos.y
+    });
+    return Promise.resolve(evt);
+  }
+
+  public static isScrollable(el: HTMLElement): boolean {
+    const hasScrollableContent = el.scrollHeight > el.clientHeight;
+
+    const overflowYStyle = window.getComputedStyle(el).overflowY;
+    const isOverflowHidden = overflowYStyle.indexOf('hidden') !== -1;
+
+    return hasScrollableContent && !isOverflowHidden;
+  }
+
+  public static getScrollableParent(el: HTMLElement): HTMLElement {
+    return !el || el === document.body
+      ? document.body
+      : PointerUtils.isScrollable(el)
+        ? el
+        : PointerUtils.getScrollableParent(el.parentElement);
   }
 }
 
