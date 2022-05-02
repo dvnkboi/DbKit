@@ -27,7 +27,7 @@
                 :name="'input_' + prop.name + '_type'" :id="'input_' + prop.name + '_type'"
                 :disabled="prop.name == '_id'" />
               <ComboboxOptions
-                class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute top-36 z-50">
+                class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute bottom-0 min-h-[7.5rem] z-50">
                 <transition-group name="fade-height" appear mode="in-out">
                   <div v-if="filteredTypes.length === 0" class="relative cursor-default select-none py-2 px-4">
                     Not a valid type
@@ -82,7 +82,7 @@
                   class="rounded-xl text-base px-2 py-1 font-semibold bg-grayish-600 w-full"
                   :name="'input_' + relation.name + '_type'" :id="'input_' + relation.name + '_type'" />
                 <ComboboxOptions
-                  class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute -top-28">
+                  class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute bottom-10">
                   <transition-group name="fade-height" appear mode="in-out">
                     <div v-if="filteredRelations.length === 0"
                       class="relative cursor-default select-none py-2 px-4 text-base">
@@ -92,7 +92,7 @@
                       v-slot="{ selected, active, disabled }" :as="'template'">
                       <div
                         :class="{ 'bg-blue-600': selected, 'bg-grayish-600': !selected, 'ring-blue-600': active, 'ring-transparent': !active, 'opacity-50 cursor-not-allowed': disabled, 'cursor-pointer': !disabled }"
-                        class="comboBoxOption h-8 w-full px-2 py-1 rounded-lg transition-all duration-300 mt-2 font-semibold ring-2">
+                        class="comboBoxOption h-8 w-full px-2 py-1 rounded-lg transition-all duration-300 mt-2 font-semibold ring-2 overflow-hidden">
                         {{ relation }}
                       </div>
                     </ComboboxOption>
