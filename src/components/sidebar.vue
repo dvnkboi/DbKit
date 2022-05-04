@@ -27,7 +27,7 @@
                 :name="'input_' + prop.name + '_type'" :id="'input_' + prop.name + '_type'"
                 :disabled="prop.name == '_id'" />
               <ComboboxOptions
-                class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute bottom-0 min-h-[7.5rem] z-50">
+                class="bg-grayish-700 shadow-xl rounded-xl w-full p-2 flex justify-center items-center flex-col absolute bottom-0 min-h-[3.5rem] z-50">
                 <transition-group name="fade-height" appear mode="in-out">
                   <div v-if="filteredTypes.length === 0" class="relative cursor-default select-none py-2 px-4">
                     Not a valid type
@@ -43,9 +43,9 @@
                 </transition-group>
               </ComboboxOptions>
             </Combobox>
-            <div class="flex justify-center items-center flex-row gap-x-4 gap-y-2 flex-wrap px-4 pt-2">
+            <div class="flex justify-center items-center flex-row gap-x-4 gap-y-2 flex-wrap px-4 pt-2 w-full">
               <div :key="constraint"
-                v-for="constraint in Object.keys(prop.constraints).filter((e) => prop.name != '_id' && e != 'primary')"
+                v-for="constraint in Object.keys(prop.constraints).filter((e) => prop.name != '_id' && e != 'primary' && (prop.type == 'String' || e != 'unique'))"
                 class="flex justify-center items-center flex-col gap-x-1 w-16 h-14 bg-grayish-700 rounded-xl">
                 <Switch v-model="prop.constraints[constraint]"
                   :class="prop.constraints[constraint] ? 'bg-blue-600 bg-opacity-90' : 'bg-gray-900 bg-opacity-50'"
@@ -68,8 +68,11 @@
       </div>
       <div class="flex justify-start items-start flex-col gap-1 w-full">
         <h2 class="text-lg font-semibold">Relations</h2>
-        <div class="flex justify-start items-center flex-col w-full gap-2">
-          <div></div>
+        <div v-if="entity.relations.length < 1">
+          <h1 class="text-sm">No relation from this entity</h1>
+          <h2 class="text-xs">Right click and click link</h2>
+        </div>
+        <div v-else class="flex justify-start items-center flex-col w-full gap-2">
           <div :key="relation.entity" v-for="relation in entity.relations"
             class="flex justify-between items-center px-2 py-1 bg-grayish-700 rounded-xl w-full gap-2 text-base">
             <h2 class="w-4/12 text-center truncate font-semibold">{{ entityById(relation.entity).name }}</h2>
@@ -125,17 +128,7 @@ import {
 } from '@headlessui/vue';
 
 
-const types = ['Object'
-  , 'Array'
-  , 'String'
-  , 'Number'
-  , 'Boolean'
-  , 'UUID'
-  , 'ObjectId'
-  , 'Binary Data'
-  , 'Mixed'
-  , 'Set'
-  , 'Dictionary'];
+const types = ['Mixed', 'String', 'Number', 'Boolean', 'ObjectId', 'String Array', 'Number Array', 'Mixed Array', 'ObjectId Array', 'Buffer', 'Date'];
 
 // const selectedType = ref(types[0]);
 const typeQuery = ref('');

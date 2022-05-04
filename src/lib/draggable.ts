@@ -69,7 +69,6 @@ export class Draggable {
   private waitTimeout: number;
   private events = new EventEmitter();
   private previousClasses: string[] = [];
-  //TODO make position follow the grid
   private get calcPos(): { x: number, y: number } {
     return {
       x: this.round(Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.options.maxX - this.boundingBox.width, this.mPose.x - this.initialOffset.x + this.offsetCoords.left)), this.options.grid),
@@ -83,6 +82,7 @@ export class Draggable {
   public initialized = false;
   public links: Map<string, { link: Link, index: number }>;
   private disabled;
+  private mutationObserver;
 
   //
   //
@@ -203,6 +203,7 @@ export class Draggable {
       .then(this.hookEvents.bind(this))
       .then(this.hookDropEl.bind(this))
       .then(this.options.disabled ? this.disable.bind(this) : this.enable.bind(this))
+      .then(this.hookMutationObserver.bind(this))
       .then(() => this.initialized = true)
       .then(this.emit.bind(this, 'initialized', this));
   }
@@ -251,10 +252,10 @@ export class Draggable {
         };
       };
 
-      document.addEventListener('mousemove', mouseUpdateFn.bind(this), false);
-      document.addEventListener('mouseenter', mouseUpdateFn.bind(this), false);
-      document.addEventListener('touchmove', touchUpdateFn.bind(this), false);
-      document.addEventListener('touchstart', touchUpdateFn.bind(this), false);
+      document.addEventListener('mousemove', mouseUpdateFn.bind(this), { capture: false, passive: false });
+      document.addEventListener('mouseenter', mouseUpdateFn.bind(this), { capture: false, passive: false });
+      document.addEventListener('touchmove', touchUpdateFn.bind(this), { capture: false, passive: false });
+      document.addEventListener('touchstart', touchUpdateFn.bind(this), { capture: false, passive: false });
       resolve(this);
     });
   }
@@ -303,14 +304,14 @@ export class Draggable {
       else
         this.handle = this.element.querySelector(this.options.handle);
 
-      this.handle.addEventListener('mousedown', this.drag.bind(this), false);
-      this.handle.addEventListener('touchstart', this.drag.bind(this), false);
-      this.handle.addEventListener('touchmove', this.drag.bind(this), false);
-      this.handle.addEventListener('mousemove', this.drag.bind(this), false);
-      this.handle.addEventListener('mouseup', this.drag.bind(this), false);
-      this.element.addEventListener('mouseup', this.drag.bind(this), false);
-      this.handle.addEventListener('touchend', this.drag.bind(this), false);
-      this.element.addEventListener('mouseover', this.drag.bind(this), false);
+      this.handle.addEventListener('mousedown', this.drag.bind(this), { capture: false, passive: false });
+      this.handle.addEventListener('touchstart', this.drag.bind(this), { capture: false, passive: false });
+      this.handle.addEventListener('touchmove', this.drag.bind(this), { capture: false, passive: false });
+      this.handle.addEventListener('mousemove', this.drag.bind(this), { capture: false, passive: false });
+      this.handle.addEventListener('mouseup', this.drag.bind(this), { capture: false, passive: false });
+      this.element.addEventListener('mouseup', this.drag.bind(this), { capture: false, passive: false });
+      this.handle.addEventListener('touchend', this.drag.bind(this), { capture: false, passive: false });
+      this.element.addEventListener('mouseover', this.drag.bind(this), { capture: false, passive: false });
       resolve(this);
     });
   }
@@ -476,6 +477,28 @@ export class Draggable {
     });
   }
 
+  private async childAdded(mutations: MutationRecord[]) {
+    mutations.forEach(async (mutation) => {
+      if (mutation.type == 'childList') {
+        await this.calculateMirrorDimensions()
+          .then(this.resetIterations.bind(this))
+          .then(this.updateCycle.bind(this))
+          .then(this.updateLinkPositions.bind(this));
+      }
+    });
+  }
+
+  private hookMutationObserver(): Promise<Draggable> {
+    return new Promise((resolve) => {
+      this.mutationObserver = new MutationObserver(async (mutations) => {
+        await this.childAdded(mutations);
+        console.log('mutation');
+      });
+      this.mutationObserver.observe(this.element, { childList: true, subtree: true });
+      resolve(this);
+    });
+  }
+
   //
   //
   //
@@ -489,7 +512,7 @@ export class Draggable {
       const id = this.generateLinkId(sender);
       if (this.links.has(id)) resolve(this);
       else {
-        this.links.set(id, { link, index: this.links.size });
+        this.links.set(id, { link, index: this.links.size + 1 });
         this.attached.set(sender.id, sender);
         this.emit('linked', sender).then(resolve.bind(this, sender));
       }
@@ -504,9 +527,9 @@ export class Draggable {
       }
       else {
         const link = new Link(options);
+        this.links.set(id, { link, index: this.links.size });
         link.attachStart(this);
         link.attachEnd(elmt);
-        this.links.set(id, { link, index: this.links.size });
         elmt.receiveLink(this, link);
         this.attached.set(elmt.id, elmt);
         this.emit('linked', elmt).then(resolve.bind(this, elmt));
@@ -516,13 +539,15 @@ export class Draggable {
 
   public generateLinkId(elmt: Draggable | string | number): string {
     const id = elmt instanceof Draggable ? elmt.id : elmt;
-    if (typeof this.id == 'string' && typeof id == 'string') return this.id + '-' + id;
+    if (typeof this.id == 'string' && typeof id == 'string') return id > this.id ? this.id + '-' + id : id + '-' + this.id;
     return id > this.id ? this.id + '-' + id : id + '-' + this.id;
   }
 
   public updateLinkPositions() {
-    this.links.forEach((link) => {
-      link.link.update();
+    this.links.forEach(async (linkMap) => {
+      linkMap.link.forceUpdate = true;
+      await linkMap.link.update();
+      linkMap.link.forceUpdate = false;
     });
   }
 
@@ -737,7 +762,7 @@ export class Draggable {
         document.removeEventListener('mousedown', handler);
       };
 
-      document.addEventListener('mousedown', handler);
+      document.addEventListener('mousedown', handler, { passive: false });
     });
   }
 

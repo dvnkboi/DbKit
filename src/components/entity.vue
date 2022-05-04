@@ -57,7 +57,7 @@ const constraintColors = {
   index: 'bg-purple-600',
   unique: 'bg-blue-600',
   required: 'bg-red-600',
-  default: 'bg-gray-600'
+  selectable: 'bg-pink-600'
 };
 
 
@@ -82,7 +82,7 @@ const entity = computed(() => entityStore.entity(props.id));
 const pushProperty = () => {
   entityStore.pushProp(props.id, {
     name: 'prop_' + entity.value.properties.length,
-    type: 'string'
+    type: 'String'
   });
 };
 

@@ -16,10 +16,10 @@ interface Relation {
 
 interface Constraint {
   primary: 1;
-  index: 1;
+  // index: 1;
   unique: 1;
   required: 1;
-  default: 1;
+  selectable: 1;
 }
 
 interface EntityOptions {
@@ -42,7 +42,7 @@ export const useEntities = defineStore("entityStore", {
   },
   actions: {
     createEntity(id, options: EntityOptions = {}): void {
-      const withDefaults = {
+      const withDefaults: EntityOptions = {
         id: id,
         name: 'unnamed',
         properties: [
@@ -51,16 +51,15 @@ export const useEntities = defineStore("entityStore", {
             type: 'ObjectId',
             constraints: {
               primary: true,
-              index: true,
+              // index: true,
               unique: true,
-              nullable: false,
-              default: false,
+              required: true,
+              selectable: true,
             }
           }
         ],
         relations: [],
         event: null,
-        ref: null,
         ...options
       };
       this.entities.set(id, withDefaults);
@@ -71,14 +70,14 @@ export const useEntities = defineStore("entityStore", {
       if (entity) {
         const propIndex = entity.properties.findIndex(p => p.name === prop.name);
         if (propIndex == -1) {
-          const propWithDefaults = {
-            type: 'string',
+          const propWithDefaults: Property = {
+            type: 'String',
             constraints: {
               primary: false,
-              index: false,
+              // index: false,
               unique: false,
               required: false,
-              default: false,
+              selectable: true,
             },
             ...prop
           };
@@ -89,15 +88,15 @@ export const useEntities = defineStore("entityStore", {
     pushRelation(id: string | number, relation: Relation): void {
       const entity = this.entities.get(id);
       if (entity) {
-        const propIndex = entity.relations.findIndex(r => r.name === relation.entity);
-        if (propIndex == -1) {
-          const relWithDefaults: Relation = {
-            type: 'one',
-            name: 'has',
-            ...relation
-          };
-          entity.relations.push(relWithDefaults);
-        }
+        const propIndex = entity.relations.findIndex(r => r.entity === relation.entity);
+        if (propIndex != -1) return;
+        const relWithDefaults: Relation = {
+          type: 'one',
+          name: 'has',
+          ...relation
+        };
+        entity.relations.push(relWithDefaults);
+        console.log(relWithDefaults);
       }
     },
     deleteProp(id: string | number, propName: string): void {

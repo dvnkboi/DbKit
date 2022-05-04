@@ -11,10 +11,10 @@ export class Link {
     return this.start.generateLinkId(this.end);
   }
   private get startLinkIndex(): number {
-    return this.start.links.get(this.id)?.index + 0.5 || 0;
+    return this.start.links.get(this.id)?.index || 0;
   }
   private get endLinkIndex(): number {
-    return this.end.links.get(this.id)?.index + 0.5 || 0;
+    return this.end.links.get(this.id)?.index || 0;
   }
   private svg: SVGElement;
   private path: SVGPathElement;
@@ -37,6 +37,7 @@ export class Link {
   private linkEndElDimensions: DOMRect;
   private linkMidElDimensions: DOMRect;
   private events = new EventEmitter();
+  public forceUpdate = false;
   private get svgPath(): { d: string } {
     return {
       d: `M ${this.startCoords.x},${this.startCoords.y} C ${this.curveStartCoords.x},${this.curveStartCoords.y},${this.curveEndCoords.x},${this.curveEndCoords.y} ${this.endCoords.x},${this.endCoords.y}`
@@ -53,9 +54,10 @@ export class Link {
     };
 
     //compare the difference between current difference and previous diff to prevent flickering
-    if (Date.now() - this.lastSideSwitchTs < 200 || Math.abs(diff.x - this.previousStartDiff.x) < this.options.sideSwitchThreshold && Math.abs(diff.y - this.previousStartDiff.y) < this.options.sideSwitchThreshold) {
-      return this.previousStartSide;
-    }
+    if (!this.forceUpdate)
+      if (Date.now() - this.lastSideSwitchTs < 200 || Math.abs(diff.x - this.previousStartDiff.x) < this.options.sideSwitchThreshold && Math.abs(diff.y - this.previousStartDiff.y) < this.options.sideSwitchThreshold) {
+        return this.previousStartSide;
+      }
 
     this.previousStartDiff = diff;
     this.lastSideSwitchTs = Date.now();
