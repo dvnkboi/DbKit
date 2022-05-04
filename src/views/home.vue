@@ -95,7 +95,7 @@ const handleCodeGeneration = async () => {
   if (!generating.value && !downloadable.value) {
     generating.value = true;
     try {
-      const response = await axios.post(`http://localhost:3001/api/generate/${userId}`, {
+      const response = await axios.post(`${import.meta.env.VITE_HOST}/api/generate/${userId}`, {
         data: JSON.stringify(entityStore.entities, replacer)
       });
       if (response.data == true) {
@@ -113,7 +113,7 @@ const handleCodeGeneration = async () => {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
     document.body.appendChild(iframe);
-    iframe.src = `http://localhost:3001/api/download/${userId}`;
+    iframe.src = `${import.meta.env.VITE_HOST}/api/download/${userId}`;
     iframe.onload = () => {
       document.body.removeChild(iframe);
     };

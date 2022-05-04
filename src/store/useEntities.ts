@@ -37,11 +37,11 @@ export const useEntities = defineStore("entityStore", {
   }),
   getters: {
     allEntities: (state) => state.entities,
-    entity: (state) => (id) => state.entities.get(id),
+    entity: (state) => (id: any) => state.entities.get(id),
     getSelection: (state) => state.selectedEntity
   },
   actions: {
-    createEntity(id, options: EntityOptions = {}): void {
+    createEntity(id: any, options: EntityOptions = {}): EntityOptions | undefined {
       const withDefaults: EntityOptions = {
         id: id,
         name: 'unnamed',
@@ -59,7 +59,7 @@ export const useEntities = defineStore("entityStore", {
           }
         ],
         relations: [],
-        event: null,
+        event: undefined,
         ...options
       };
       this.entities.set(id, withDefaults);
