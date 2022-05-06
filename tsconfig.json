@@ -9,5 +9,6 @@
     "strict": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "types": ["vite/client"]
   }
 }

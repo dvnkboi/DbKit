@@ -12,16 +12,16 @@
               <i class="ri-add-fill transform transition-transform group-hover:-translate-y-0.5"></i>
             </div>
             </MenuItem>
-            <MenuItem as="div" v-slot="{ active }" class="w-full">
-            <div :class="{ 'bg-gray-300': active }"
-              class="option bg-gray-100 group transform transition hover:-translate-y-0.5">
-              <h2 class="transform transition-transform group-hover:-translate-y-0.5">Export as code</h2>
-            </div>
-            </MenuItem>
             <MenuItem v-if="isDraggable" @click="attach" as="div" v-slot="{ active }" class="w-full">
             <div :class="{ 'bg-gray-300': active }"
               class="option bg-gray-100 group transform transition hover:-translate-y-0.5">
               <h2 class="transform transition-transform group-hover:-translate-y-0.5">Link</h2>
+            </div>
+            </MenuItem>
+            <MenuItem as="div" v-slot="{ active }" @click="exportCode" class="w-full">
+            <div :class="{ 'bg-gray-300': active }"
+              class="option bg-gray-100 group transform transition hover:-translate-y-0.5">
+              <h2 class="transform transition-transform group-hover:-translate-y-0.5">Export as code</h2>
             </div>
             </MenuItem>
             <MenuItem v-if="isDraggable" @click="deleteEntity" as="div" v-slot="{ active }" class="w-full">
@@ -32,17 +32,6 @@
             </MenuItem>
           </MenuItems>
         </Menu>
-        <!-- <div @click="createNew" class="option bg-blue-100 group transform transition-transform hover:-translate-y-0.5">
-          <h2 class="transform transition-transform group-hover:-translate-y-0.5">Add new</h2>
-          <i class="ri-add-fill transform transition-transform group-hover:-translate-y-0.5"></i>
-        </div>
-        <div class="option bg-gray-100 group transform transition-transform hover:-translate-y-0.5">
-          <h2 class="transform transition-transform group-hover:-translate-y-0.5">Export as code</h2>
-        </div>
-        <div @click="attach" v-if="isDraggable"
-          class="option bg-gray-100 group transform transition-transform hover:-translate-y-0.5">
-          <h2 class="transform transition-transform group-hover:-translate-y-0.5">Link</h2>
-        </div> -->
       </div>
     </transition>
   </div>
@@ -58,7 +47,7 @@ import { useEntities } from '../store/useEntities';
 const entityStore = useEntities();
 
 
-const emit = defineEmits(['link', 'createNew']);
+const emit = defineEmits(['link', 'createNew', 'export']);
 
 
 const contextMenuOpen = ref(false);
@@ -71,6 +60,11 @@ let draggable;
 const createNew = (e) => {
   contextMenuOpen.value = false;
   emit('createNew', e);
+};
+
+const exportCode = (e) => {
+  contextMenuOpen.value = false;
+  emit('export', e);
 };
 
 const attach = async (e) => {

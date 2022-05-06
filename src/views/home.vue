@@ -6,7 +6,7 @@
           <rawEntity @destroyed="deleteEntity" :index="index" :event="entity.event" :id="entity.id" :key="entity.id"
             v-for="entity, index in entities.values()" />
         </transition-group>
-        <rightClick @createNew="addEntity" />
+        <rightClick @createNew="addEntity" @export="handleCodeGeneration" />
         <div class="fixed bottom-6 left-0 right-80 flex justify-center items-center">
           <transition name="fade" appear>
             <div @click="handleCodeGeneration" v-if="entities.size > 0" :class="{ 'animate-pulse': downloadable }"
@@ -66,7 +66,7 @@ const { entities } = storeToRefs(entityStore);
 interface Entities {
   ref: string,
   entity: Draggable,
-  event: MouseEvent
+  event: MouseEvent;
 }
 
 const userId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);

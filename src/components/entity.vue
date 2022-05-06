@@ -117,7 +117,7 @@ watch(entity, (newEntity) => {
 onMounted(() => {
   const parent = PointerUtils.getScrollableParent(draggable.value);
   taptap.value = new Draggable(draggable.value, {
-    easeTime: 0.08,
+    easeTime: 0.1,
     grid: 1,
     handle: 'h1',
     initialCoords: { x: props.event.clientX + parent.scrollLeft, y: props.event.clientY + parent.scrollTop },
