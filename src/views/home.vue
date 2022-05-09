@@ -83,9 +83,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, watch, } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import Draggable from '../lib/draggable';
+import { setIfNotExists, getWithExpiry } from '../lib/localStorage';
 
 const entityDesigner = ref(null);
 const tryIt = ref(null);
@@ -94,17 +94,14 @@ const tryItText = ref(null);
 const designerLink = ref(null);
 let taptapDesigner: Draggable = null;
 let taptapTryIt: Draggable = null;
-const route = useRoute();
+
 let intoTimeout = null;
-
-watch(route, (newRoute) => {
-  console.log(newRoute);
-}, {
-  deep: true
-});
-
+let introBtnTimeout = null;
 
 onMounted(() => {
+  const animate = !getWithExpiry('introPlayed');
+  setIfNotExists('introPlayed', true, 604800000);
+
   taptapDesigner = new Draggable(entityDesigner.value, {
     easeTime: 0.05,
     maxX: document.body.clientWidth,
@@ -117,10 +114,18 @@ onMounted(() => {
   });
 
   nextTick(() => {
-    entityText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
-    tryItText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
-    designerLink.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
-    designerLink.value.style.transform = 'translateY(15px)';
+    if (animate) {
+      entityText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      tryItText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      designerLink.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      designerLink.value.style.transform = 'translateY(15px)';
+    }
+    else {
+      entityText.value.style.transition = 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      tryItText.value.style.transition = 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      designerLink.value.style.transition = 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      designerLink.value.style.transform = 'translateY(15px)';
+    }
   });
 
 
@@ -131,16 +136,17 @@ onMounted(() => {
     tryItText.value.style.transform = 'translateY(0px)';
     designerLink.value.style.opacity = 1;
     designerLink.value.style.transform = 'translateY(0px)';
-    setTimeout(() => {
+    introBtnTimeout = setTimeout(() => {
       designerLink.value.style.transform = '';
       designerLink.value.style.transition = 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1)';
-    }, 2500);
-  }, 5000);
+    }, animate ? 2500 : 0);
+  }, animate ? 5000 : 0);
 
 });
 
 onBeforeUnmount(() => {
   clearTimeout(intoTimeout);
+  clearTimeout(introBtnTimeout);
   taptapDesigner.destroy();
   taptapTryIt.destroy();
 });
