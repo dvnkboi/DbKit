@@ -1,139 +1,125 @@
 <template>
-  <div class="flex flex-row justify-center items-center select-none">
-    <div ref="playGroundContainer" class="w-full h-screen overflow-auto">
-      <div ref="playGround" class="w-[10000px] h-[10000px] relative flex-none bg-grayish-900">
-        <transition-group name="fade" appear>
-          <rawEntity @destroyed="deleteEntity" :index="index" :event="entity.event" :id="entity.id" :key="entity.id"
-            v-for="entity, index in entities.values()" />
-        </transition-group>
-        <rightClick @createNew="addEntity" @export="handleCodeGeneration" />
-        <div class="fixed bottom-6 left-0 right-80 flex justify-center items-center">
-          <transition name="fade" appear>
-            <div @click="handleCodeGeneration" v-if="entities.size > 0" :class="{ 'animate-pulse': downloadable }"
-              class="px-4 py-1 font-semibold text-base bg-gray-200 text-grayish-900 hover:bg-blue-100 transition duration-500 cursor-pointer rounded-xl group hover:-translate-y-1 flex justify-start items-center gap-1">
-              <h1 class="group-hover:-translate-y-0.5 transition-transform duration-300">{{ generating ? 'Generating' :
-                  downloadable ? 'Download' : 'Export code'
-              }}</h1>
-              <i v-if="!generating"
-                class="ri-folder-download-fill group-hover:-translate-y-0.5 transition-transform duration-300 font-thin"></i>
-              <i v-else
-                class="ri-loader-fill group-hover:-translate-y-0.5 transition-transform duration-300 font-thin animate-spin"></i>
-            </div>
-          </transition>
-        </div>
-        <div class="fixed top-4 left-4 flex justify-start items-start flex-col gap-2">
-          <div
-            class="px-2 py-1 rounded-xl bg-grayish-50 text-grayish-900 group hover:-translate-y-1 hover:bg-blue-100 transition duration-300 cursor-pointer">
-            <div @click="addEntity"
-              class="group-hover:-translate-y-0.5 transition-transform duration-300 flex justify-start items-center gap-1">
-              <h1>Add entity</h1>
-              <i class="ri-add-fill"></i>
-            </div>
-          </div>
-          <div v-if="tooManyEntities" class="text-red-400 animate-pulse font-semibold text-base">too many entities</div>
-        </div>
+  <div class="w-full h-screen bg-grayish-900 text-grayish-200">
+    <div class="absolute h-screen w-screen z-0">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="h-full w-full scale-75 overflow-visible"
+        preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="Gradient1" cx="50%" cy="50%" fx="0.441602%" fy="50%" r=".5">
+            <stop offset="0%" stop-color="rgba(255, 0, 123, 1)" />
+            <stop offset="100%" stop-color="rgba(255, 0, 123, 0)" />
+          </radialGradient>
+          <radialGradient id="Gradient2" cx="50%" cy="50%" fx="2.68147%" fy="50%" r=".5">
+            <stop offset="0%" stop-color="rgba(255, 174, 0, 1)" />
+            <stop offset="100%" stop-color="rgba(255, 174, 0, 0)" />
+          </radialGradient>
+          <radialGradient id="Gradient3" cx="50%" cy="50%" fx="0.836536%" fy="50%" r=".5">
+            <animate attributeName="opacity" from="0" to="1" dur="1s" begin="2s" fill="freeze" repeatCount="0" />
+            <stop offset="0%" stop-color="rgba(0, 136, 255, 1)" />
+            <stop offset="100%" stop-color="rgba(0, 136, 255, 0)" />
+          </radialGradient>
+          <radialGradient id="Gradient4" cx="50%" cy="50%" fx="4.56417%" fy="50%" r=".5">
+            <stop offset="0%" stop-color="rgba(0, 255, 0, 1)" />
+            <stop offset="100%" stop-color="rgba(0, 255, 0, 0)" />
+          </radialGradient>
+          <radialGradient id="Gradient5" cx="50%" cy="50%" fx="2.65405%" fy="50%" r=".5">
+            <stop offset="0%" stop-color="rgba(50,0,255, 1)" />
+            <stop offset="100%" stop-color="rgba(50,0,255, 0)" />
+          </radialGradient>
+          <radialGradient id="Gradient6" cx="50%" cy="50%" fx="0.981338%" fy="50%" r=".5">
+            <stop offset="0%" stop-color="rgba(255,0,0, 1)" />
+            <stop offset="100%" stop-color="rgba(255,0,0, 0)" />
+          </radialGradient>
+        </defs>
+        <rect x="50%" y="25%" width="50%" height="50%" fill="url(#Gradient5)" transform="rotate(0 50 50)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="0s" fill="freeze" repeatCount="0" />
+          <animateTransform attributeName="transform" type="rotate" values="0 50 50;360 50 50;0 50 50" dur="10s"
+            keyTimes="0;0.8;1" repeatCount="0" calcMode="spline" keySplines="0.5 0 0.5 1;0.5 0 0.7 1" />
+        </rect>
+        <rect x="50%" y="25%" width="50%" height="50%" fill="url(#Gradient6)" transform="rotate(72 50 50)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="1s" fill="freeze" repeatCount="0" />
+          <animateTransform attributeName="transform" type="rotate" values="72 50 50;360 50 50;72 50 50" dur="10s"
+            keyTimes="0;0.8;1" repeatCount="0" calcMode="spline" keySplines="0.5 0 0.5 1;0.5 0 0.7 1" />
+        </rect>
+        <rect x="50%" y="25%" width="50%" height="50%" fill="url(#Gradient1)" transform="rotate(144 50 50)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="2s" fill="freeze" repeatCount="0" />
+          <animateTransform attributeName="transform" type="rotate" values="144 50 50;360 50 50;144 50 50" dur="10s"
+            keyTimes="0;0.8;1" repeatCount="0" calcMode="spline" keySplines="0.5 0 0.5 1;0.5 0 0.7 1" />
+        </rect>
+        <rect x="50%" y="25%" width="50%" height="50%" fill="url(#Gradient2)" transform="rotate(216 50 50)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="3s" fill="freeze" repeatCount="0" />
+          <animateTransform attributeName="transform" type="rotate" values="216 50 50;360 50 50;216 50 50" dur="10s"
+            keyTimes="0;0.8;1" repeatCount="0" calcMode="spline" keySplines="0.5 0 0.5 1;0.5 0 0.7 1" />
+        </rect>
+        <rect x="50%" y="25%" width="50%" height="50%" fill="url(#Gradient3)" transform="rotate(288 50 50)" opacity="0">
+          <animate attributeName="opacity" from="0" to="1" dur="1s" begin="4s" fill="freeze" repeatCount="0" />
+          <animateTransform attributeName="transform" type="rotate" values="288 50 50;360 50 50;288 50 50" dur="10s"
+            keyTimes="0;0.8;1" repeatCount="0" calcMode="spline" keySplines="0.5 0 0.5 1;0.5 0 0.7 1" />
+        </rect>
+      </svg>
+    </div>
+    <div class="text-4xl font-bold px-5 py-2 mix-blend-exclusion">
+      Terminal Ape
+    </div>
+    <div class="flex justify-start items-start flex-col gap-5 pt-32 pl-32 z-50">
+      <div ref="entityDesigner" class="text-9xl font-bold max-w-min mix-blend-exclusion overflow-hidden">
+        <h1 ref="entityText" class="cursor-grab opacity-0 -translate-y-4">
+          Your entity designer is here
+        </h1>
+      </div>
+      <div ref="tryIt" class="text-4xl mix-blend-exclusion overflow-hidden">
+        <h2 ref="tryItText" class="cursor-grab opacity-0 -translate-y-4">
+          Try it out now
+        </h2>
       </div>
     </div>
-    <div class="w-80 shrink-0 h-screen bg-grayish-800">
-      <sidebar />
-    </div>
+    <router-link to="/designer">
+      <div ref="designerLink"
+        class="flex justify-start items-center px-2 py-1 bg-blue-600 rounded-xl absolute bottom-10 right-10 text-grayish-50 gap-2 font-semibold group hover:-translate-y-1 transition duration-300 opacity-0 translate-y-2">
+        <h1 class="group-hover:-translate-y-0.5 transition-transform duration-300">Get started</h1>
+        <i class="ri-arrow-right-line group-hover:-translate-y-0.5 transition-transform duration-300"></i>
+      </div>
+    </router-link>
   </div>
 </template>
 
-<script setup lang='ts'>
-import { ref, onMounted, onBeforeUnmount, markRaw, shallowRef } from 'vue';
-import rightClick from '../components/rightClick.vue';
-import entity from '../components/entity.vue';
-import sidebar from '../components/sidebar.vue';
+<script lang="ts" setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import Draggable from '../lib/draggable';
-import { useEntities } from '../store/useEntities';
-import { storeToRefs } from 'pinia';
-import { reviver, replacer } from '../lib/utils';
-import axios from 'axios';
 
-const rawEntity = entity;
+const entityDesigner = ref(null);
+const tryIt = ref(null);
+const entityText = ref(null);
+const tryItText = ref(null);
+const designerLink = ref(null);
+let taptapDesigner: Draggable = null;
+let taptapTryIt: Draggable = null;
 
-const playGroundContainer = ref(null);
-const playGround = ref(null);
-const isMounted = ref(false);
-const tooManyEntities = ref(false);
-const generating = ref(false);
-const downloadable = ref(false);
-
-const entityStore = useEntities();
-const { entities } = storeToRefs(entityStore);
-
-interface Entities {
-  ref: string,
-  entity: Draggable,
-  event: MouseEvent;
-}
-
-const userId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-const addEntity = (evt: MouseEvent) => {
-  if (entities.value.size > 5) {
-    tooManyEntities.value = true;
-    setTimeout(() => {
-      tooManyEntities.value = false;
-    }, 5000);
-  }
-  else {
-    const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    entityStore.createEntity(id, {
-      id: id,
-      event: evt,
-    });
-  }
-};
-
-const deleteEntity = (entity: Draggable, index: number) => {
-  entityStore.deleteEntity(entity.id);
-};
-
-const handleCodeGeneration = async () => {
-  if (!generating.value && !downloadable.value) {
-    generating.value = true;
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_HOST}/api/generate/${userId}`, {
-        data: JSON.stringify(entityStore.entities, replacer)
-      });
-      if (response.data == true) {
-        downloadable.value = true;
-      }
-      else downloadable.value = false;
-    }
-    catch (e) {
-      console.error(e);
-    }
-    generating.value = false;
-  }
-  if (downloadable.value) {
-    downloadable.value = false;
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    iframe.src = `${import.meta.env.VITE_HOST}/api/download/${userId}`;
-    iframe.onload = () => {
-      document.body.removeChild(iframe);
-    };
-  }
-};
-
-//scroll playground container to middle of playground size
-const scrollToMiddle = () => {
-  const playgroundWidth = playGround.value.clientWidth;
-  const playgroundHeight = playGround.value.clientHeight;
-  playGroundContainer.value.scrollTo(playgroundWidth / 2, playgroundHeight / 2);
-};
 
 onMounted(() => {
-  scrollToMiddle();
-  isMounted.value = true;
+  taptapDesigner = new Draggable(entityDesigner.value, {
+    easeTime: 0.05
+  });
+  taptapTryIt = new Draggable(tryIt.value, {
+    easeTime: 0.08
+  });
+
+  nextTick(() => {
+    entityText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    tryItText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    designerLink.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+  });
+
+
+  setTimeout(() => {
+    entityText.value.style.opacity = 1;
+    tryItText.value.style.opacity = 1;
+    entityText.value.style.transform = 'translateY(0px)';
+    tryItText.value.style.transform = 'translateY(0px)';
+    designerLink.value.style.opacity = 1;
+    designerLink.value.style.transform = 'translateY(0px)';
+  }, 5000);
+
 });
 
+
 </script>
-
-
-<style>
-</style>

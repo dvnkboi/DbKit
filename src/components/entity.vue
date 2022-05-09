@@ -1,5 +1,5 @@
 <template>
-  <div ref="draggable" class="absolute top-0 left-0 transition-opacity duration-500">
+  <div ref="draggable" class="absolute left-0 transition-opacity duration-500">
     <div :class="{ 'ring-blue-500': getSelection === entity.id, 'ring-transparent': getSelection != entity.id }"
       class="entity rounded-3xl bg-grayish-800 flex justify-start items-start flex-col pt-2 pb-2 w-fit min-w-[16rem] shadow-2xl relative transition duration-300 text-grayish-200 ring-2">
       <!-- <div class="absolute top-2 right-2 text-xs">entity</div> -->
@@ -119,7 +119,7 @@ onMounted(() => {
   taptap.value = new Draggable(draggable.value, {
     easeTime: 0.1,
     grid: 1,
-    handle: 'h1',
+    // handle: 'h1',
     initialCoords: { x: props.event.clientX + parent.scrollLeft, y: props.event.clientY + parent.scrollTop },
     maxX: 10000,
     maxY: 10000,

@@ -2,14 +2,13 @@
   <router-view></router-view>
 </template>
 
-<script lang="ts">
-
-</script>
-
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 body,
 html,

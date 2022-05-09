@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang='ts'>
-import { Menu, MenuItems, MenuItem, MenuButton } from '@headlessui/vue';
+import { Menu, MenuItems, MenuItem } from '@headlessui/vue';
 import { ref, nextTick, onMounted } from 'vue';
 import PointerUtils from '../lib/pointerUtils';
 import Draggable from '../lib/draggable';
@@ -56,6 +56,8 @@ const contextMenu = ref<HTMLElement>(null);
 const isDraggable = ref(false);
 const pos = { x: 0, y: 0 };
 let draggable;
+
+const pointerUtil = new PointerUtils();
 
 const createNew = (e) => {
   contextMenuOpen.value = false;
@@ -90,21 +92,21 @@ const attach = async (e) => {
 const deleteEntity = async (e) => {
   contextMenuOpen.value = false;
   const taptap = await Draggable.getDraggableFromPoint(pos);
-  console.log(taptap);
   entityStore.deleteEntity(taptap.id);
   taptap.destroy();
 };
 
 onMounted(() => {
   const parent = PointerUtils.getScrollableParent(rightClick.value);
-  PointerUtils.hook();
-  PointerUtils.contextMenuPrevent = true;
-  PointerUtils.upPrevent = true;
+
+  pointerUtil.hook();
+  pointerUtil.contextMenuPrevent = true;
+  pointerUtil.upPrevent = true;
 
   const contextMenuCb = async (e) => {
-    draggable = await Draggable.getDraggableFromPoint({ x: e.clientX, y: e.clientY });
-    pos.x = e.clientX;
-    pos.y = e.clientY;
+    pos.x = PointerUtils.clamp(e.clientX, 0, parent.clientWidth);
+    pos.y = PointerUtils.clamp(e.clientY, 0, parent.clientHeight);
+    draggable = await Draggable.getDraggableFromPoint(pos);
     if (draggable) {
       isDraggable.value = true;
     }
@@ -120,18 +122,18 @@ onMounted(() => {
     });
   };
 
-  PointerUtils.contextMenuCb = (e) => {
+  pointerUtil.contextMenuCb = (e) => {
     contextMenuCb(e);
   };
 
-  PointerUtils.longPressCb = (e) => {
-    if (PointerUtils.isTouch) {
+  pointerUtil.longPressCb = (e) => {
+    if (pointerUtil.isTouch) {
       contextMenuCb(e);
     }
   };
 
-  PointerUtils.downCb = (e: PointerEvent) => {
-    !PointerUtils.currentPath.includes(rightClick.value) && (contextMenuOpen.value = false);
+  pointerUtil.downCb = (e: PointerEvent) => {
+    !pointerUtil.currentPath.includes(rightClick.value) && (contextMenuOpen.value = false);
   };
 });
 

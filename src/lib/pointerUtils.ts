@@ -1,71 +1,91 @@
 import { EventEmitter } from 'events';
 
 export class PointerUtils {
-  private static events = new EventEmitter();
-  private static downTs: number;
-  private static upTs: number;
-  private static longPressDownTo: number;
-  private static ignoredEls: HTMLElement[] = [];
-  private static isHooked = false;
+  private events = new EventEmitter();
+  private downTs: number;
+  private upTs: number;
+  private longPressDownTo: number;
+  private ignoredEls: HTMLElement[] = [];
+  private isHooked = false;
 
-  public static pageCoords: { x: number; y: number };
-  public static isPressed = false;
-  public static isLongPress = false;
-  public static isTouch = false;
+  public pageCoords: { x: number; y: number; };
+  public isPressed = false;
+  public isLongPress = false;
+  public isTouch = false;
 
-  public static downPrevent = false;
-  public static doublePrevent = false;
-  public static upPrevent = false;
-  public static enterPrevent = false;
-  public static leavePrevent = false;
-  public static MovePrevent = false;
-  public static CancelPrevent = false;
-  public static outPrevent = false;
-  public static overPrevent = false;
-  public static lockChangePrevent = false;
-  public static lockErrorPrevent = false;
-  public static contextMenuPrevent = false;
-  public static doubleClickTime = 250;
-  public static longPressTime = 500;
-  public static previousCoords: { x: number, y: number } = { x: 0, y: 0 };
-  public static moveThreshold = 5;
-  public static longPressOnUp = false;
-  public static set ignore(el: string | HTMLElement | HTMLElement[]) {
+  public downPrevent = false;
+  public clickPrevent = false;
+  public doublePrevent = false;
+  public upPrevent = false;
+  public enterPrevent = false;
+  public leavePrevent = false;
+  public MovePrevent = false;
+  public CancelPrevent = false;
+  public outPrevent = false;
+  public overPrevent = false;
+  public lockChangePrevent = false;
+  public lockErrorPrevent = false;
+  public contextMenuPrevent = false;
+  public doubleClickTime = 250;
+  public longPressTime = 500;
+  public previousCoords: { x: number, y: number; } = { x: 0, y: 0 };
+  public moveThreshold = 5;
+  public longPressOnUp = false;
+
+
+  public set ignore(el: string | HTMLElement | HTMLElement[]) {
     if (typeof el === 'string') {
-      PointerUtils.ignoredEls = [document.querySelector(el) as HTMLElement];
+      this.ignoredEls = [document.querySelector(el) as HTMLElement];
     } else if (el instanceof HTMLElement) {
-      PointerUtils.ignoredEls = [el];
+      this.ignoredEls = [el];
     } else if (Array.isArray(el)) {
-      PointerUtils.ignoredEls = el;
+      this.ignoredEls = el;
     }
 
-    PointerUtils.ignoredEls.forEach(el => {
+    this.ignoredEls.forEach(el => {
       const children = el.querySelectorAll('*');
       for (let i = 0; i < children.length; i++) {
-        PointerUtils.ignoredEls.push(children[i] as HTMLElement);
+        this.ignoredEls.push(children[i] as HTMLElement);
       }
     });
   }
 
-  public static downCb: (e: PointerEvent) => unknown = () => null;
-  public static upCb: (e: PointerEvent) => unknown = () => null;
-  public static enterCb: (e: PointerEvent) => unknown = () => null;
-  public static leaveCb: (e: PointerEvent) => unknown = () => null;
-  public static moveCb: (e: PointerEvent) => unknown = () => null;
-  public static cancelCb: (e: PointerEvent) => unknown = () => null;
-  public static outCb: (e: PointerEvent) => unknown = () => null;
-  public static overCb: (e: PointerEvent) => unknown = () => null;
-  public static lockChangeCb: (e: PointerEvent) => unknown = () => null;
-  public static lockErrorCb: (e: PointerEvent) => unknown = () => null;
-  public static contextMenuCb: (e: PointerEvent) => unknown = () => null;
-  public static doubleClickCb: (e: PointerEvent) => unknown = () => null;
-  public static longPressCb: (e: PointerEvent) => unknown = () => null;
-  public static get currentElement(): HTMLElement {
-    return document.elementFromPoint(PointerUtils.pageCoords.x, PointerUtils.pageCoords.y) as HTMLElement;
+  public downCb: (e: PointerEvent) => unknown = () => null;
+  public clickCb: (e: PointerEvent) => unknown = () => null;
+  public doubleClickCb: (e: PointerEvent) => unknown = () => null;
+  public longPressCb: (e: PointerEvent) => unknown = () => null;
+  public upCb: (e: PointerEvent) => unknown = () => null;
+  public enterCb: (e: PointerEvent) => unknown = () => null;
+  public leaveCb: (e: PointerEvent) => unknown = () => null;
+  public moveCb: (e: PointerEvent) => unknown = () => null;
+  public cancelCb: (e: PointerEvent) => unknown = () => null;
+  public outCb: (e: PointerEvent) => unknown = () => null;
+  public overCb: (e: PointerEvent) => unknown = () => null;
+  public lockChangeCb: (e: PointerEvent) => unknown = () => null;
+  public lockErrorCb: (e: PointerEvent) => unknown = () => null;
+  public contextMenuCb: (e: PointerEvent) => unknown = () => null;
+
+  public downEl: HTMLElement;
+  public clickEl: HTMLElement;
+  public doubleClickEl: HTMLElement;
+  public longPressEl: HTMLElement;
+  public upEl: HTMLElement;
+  public enterEl: HTMLElement;
+  public leaveEl: HTMLElement;
+  public moveEl: HTMLElement;
+  public cancelEl: HTMLElement;
+  public outEl: HTMLElement;
+  public overEl: HTMLElement;
+  public lockChangeEl: HTMLElement;
+  public lockErrorEl: HTMLElement;
+  public contextMenuEl: HTMLElement;
+
+  public get currentElement(): HTMLElement {
+    return document.elementFromPoint(this.pageCoords.x, this.pageCoords.y) as HTMLElement;
   }
-  public static get currentPath(): HTMLElement[] {
+  public get currentPath(): HTMLElement[] {
     const path: HTMLElement[] = [];
-    let el = PointerUtils.currentElement;
+    let el = this.currentElement;
     while (el) {
       path.push(el);
       el = el.parentElement;
@@ -73,9 +93,9 @@ export class PointerUtils {
     return path;
   }
 
-  public static hook() {
-    if (PointerUtils.isHooked) return;
-    PointerUtils.isHooked = true;
+  public hook() {
+    if (this.isHooked) return;
+    this.isHooked = true;
     document.documentElement.addEventListener('pointerdown', this.pointerDownFn.bind(this), false);
     document.documentElement.addEventListener('pointerup', this.pointerUpFn.bind(this), false);
     document.documentElement.addEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
@@ -89,243 +109,247 @@ export class PointerUtils {
     document.documentElement.addEventListener('contextmenu', this.pointerContextMenuFn.bind(this), false);
   }
 
-  private static pointerDownFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.downPrevent) {
+  private pointerDownFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.downPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.isPressed = true;
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
+    this.isPressed = true;
+    this.pageCoords = { x: e.pageX, y: e.pageY };
 
-    PointerUtils.isLongPress = false;
-    const prevTs = PointerUtils.downTs;
-    PointerUtils.downTs = Date.now();
-    PointerUtils.longPressDownTo = setTimeout(() => {
-      if (PointerUtils.isPressed) {
-        PointerUtils.isLongPress = true;
-        PointerUtils.longPressCb(e);
-        PointerUtils.events.emit('longPress', e);
+    this.isLongPress = false;
+    const prevTs = this.downTs;
+    this.downTs = Date.now();
+    this.longPressDownTo = setTimeout(() => {
+      if (this.isPressed) {
+        if (this.longPressEl && this.longPressEl !== e.target) return;
+        this.isLongPress = true;
+        this.longPressCb(e);
+        this.events.emit('longPress', e);
       }
-    }, PointerUtils.longPressTime);
+    }, this.longPressTime);
 
 
-    if (PointerUtils.downTs - prevTs < PointerUtils.doubleClickTime) {
-      if (PointerUtils.doublePrevent) {
+    if (this.downTs - prevTs < this.doubleClickTime) {
+      if (this.doubleClickEl && this.doubleClickEl !== e.target) return;
+      if (this.doublePrevent) {
         e.preventDefault();
       }
-      PointerUtils.events.emit('doubleClick', e);
-      PointerUtils.doubleClickCb(e);
+      this.events.emit('doubleClick', e);
+      this.doubleClickCb(e);
     }
 
-    PointerUtils.events.emit('pointerdown', e);
-    PointerUtils.downCb(e);
+    if (this.downEl && this.downEl !== e.target) return;
+    this.events.emit('pointerdown', e);
+    this.downCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerUpFn(e: PointerEvent): Promise<PointerEvent> {
+  private pointerUpFn(e: PointerEvent): Promise<PointerEvent> {
 
-    if (PointerUtils.upPrevent) {
+    if (this.upPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
-
-
-    PointerUtils.longPressDownTo && clearTimeout(PointerUtils.longPressDownTo);
-    PointerUtils.longPressDownTo = null;
-    PointerUtils.upTs = Date.now();
-    PointerUtils.isPressed = false;
+    this.longPressDownTo && clearTimeout(this.longPressDownTo);
+    this.longPressDownTo = null;
+    this.upTs = Date.now();
+    this.isPressed = false;
     if (e.pointerType === 'touch') {
-      PointerUtils.isTouch = true;
+      this.isTouch = true;
 
-      if (PointerUtils.upTs - PointerUtils.downTs > 500) {
-        if (PointerUtils.contextMenuPrevent) e.preventDefault();
+      if (this.upTs - this.downTs > 500) {
+        if (this.contextMenuPrevent) e.preventDefault();
       }
     }
     else {
       document.documentElement.releasePointerCapture(e.pointerId);
     }
-    if (PointerUtils.longPressOnUp && !PointerUtils.isLongPress && PointerUtils.upTs - PointerUtils.downTs > PointerUtils.longPressTime) {
-      PointerUtils.longPressCb(e);
-      PointerUtils.events.emit('longPress', e);
+    if (this.longPressOnUp && !this.isLongPress && this.upTs - this.downTs > this.longPressTime) {
+      if (this.longPressEl && this.longPressEl !== e.target) return;
+      this.longPressCb(e);
+      this.events.emit('longPress', e);
     }
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerup', e);
-    PointerUtils.upCb(e);
+
+    if (this.upEl && this.upEl !== e.target) return;
+    this.events.emit('pointerup', e);
+    this.upCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerEnterFn(e: PointerEvent): Promise<PointerEvent> {
+  private pointerEnterFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.enterEl && this.enterEl !== e.target) return;
 
-    if (PointerUtils.enterPrevent) {
+    if (this.enterPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerenter', e);
-    PointerUtils.enterCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerenter', e);
+    this.enterCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerLeaveFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.leavePrevent) {
+  private pointerLeaveFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.leaveEl && this.leaveEl !== e.target) return;
+    if (this.leavePrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerleave', e);
-    PointerUtils.leaveCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerleave', e);
+    this.leaveCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerMoveFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.MovePrevent) {
+  private pointerMoveFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.moveEl && this.moveEl !== e.target) return;
+    if (this.MovePrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
 
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    if (!PointerUtils.isLongPress && PointerUtils.getDistance(PointerUtils.previousCoords, PointerUtils.pageCoords) > PointerUtils.moveThreshold) {
-      clearTimeout(PointerUtils.longPressDownTo);
-      PointerUtils.longPressDownTo = null;
-      PointerUtils.isLongPress = false;
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    if (!this.isLongPress && PointerUtils.getDistance(this.previousCoords, this.pageCoords) > this.moveThreshold) {
+      clearTimeout(this.longPressDownTo);
+      this.longPressDownTo = null;
+      this.isLongPress = false;
     }
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.events.emit('pointermove', e);
-    PointerUtils.moveCb(e);
+    this.events.emit('pointermove', e);
+    this.moveCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerCancelFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.CancelPrevent) {
+  private pointerCancelFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.cancelEl && this.cancelEl !== e.target) return;
+    if (this.CancelPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointercancel', e);
-    PointerUtils.cancelCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointercancel', e);
+    this.cancelCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerOutFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.outPrevent) {
+  private pointerOutFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.outEl && this.outEl !== e.target) return;
+    if (this.outPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerout', e);
-    PointerUtils.outCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerout', e);
+    this.outCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerOverFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.overPrevent) {
+  private pointerOverFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.overEl && this.overEl !== e.target) return;
+    if (this.overPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerover', e);
-    PointerUtils.overCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerover', e);
+    this.overCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerLockChangeFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.lockChangePrevent) {
+  private pointerLockChangeFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.lockChangeEl && this.lockChangeEl !== e.target) return;
+    if (this.lockChangePrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerlockchange', e);
-    PointerUtils.lockChangeCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerlockchange', e);
+    this.lockChangeCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerLockErrorFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.lockErrorPrevent) {
+  private pointerLockErrorFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.lockErrorEl && this.lockErrorEl !== e.target) return;
+    if (this.lockErrorPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     document.documentElement.releasePointerCapture(e.pointerId);
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('pointerlockerror', e);
-    PointerUtils.lockErrorCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('pointerlockerror', e);
+    this.lockErrorCb(e);
     return Promise.resolve(e);
   }
 
-  private static pointerContextMenuFn(e: PointerEvent): Promise<PointerEvent> {
-
-    if (PointerUtils.contextMenuPrevent) {
+  private pointerContextMenuFn(e: PointerEvent): Promise<PointerEvent> {
+    if (this.contextMenuEl && this.contextMenuEl !== e.target) return;
+    if (this.contextMenuPrevent) {
       e.preventDefault();
     }
 
-    if (PointerUtils.ignoredEls.includes(e.target as HTMLElement)) return;
+    if (this.ignoredEls.includes(e.target as HTMLElement)) return;
 
-    e.pointerType === 'touch' ? PointerUtils.isTouch = true : PointerUtils.isTouch = false;
+    e.pointerType === 'touch' ? this.isTouch = true : this.isTouch = false;
 
     if (e.pointerType != "touch") {
       document.documentElement.releasePointerCapture(e.pointerId);
     }
-    PointerUtils.pageCoords = { x: e.pageX, y: e.pageY };
-    PointerUtils.events.emit('contextmenu', e);
-    PointerUtils.contextMenuCb(e);
+    this.pageCoords = { x: e.pageX, y: e.pageY };
+    this.events.emit('contextmenu', e);
+    this.contextMenuCb(e);
     return Promise.resolve(e);
   }
 
-  public static destroy(): void {
-    PointerUtils.isHooked = false;
+  public destroy(): void {
+    this.isHooked = false;
     document.documentElement.removeEventListener('pointerdown', this.pointerDownFn.bind(this), false);
     document.documentElement.removeEventListener('pointerup', this.pointerUpFn.bind(this), false);
     document.documentElement.removeEventListener('pointerenter', this.pointerEnterFn.bind(this), false);
@@ -343,15 +367,15 @@ export class PointerUtils {
     return a + (b - a) * t;
   }
 
-  public static getDistance(a: { x: number, y: number }, b: { x: number, y: number }): number {
+  public static getDistance(a: { x: number, y: number; }, b: { x: number, y: number; }): number {
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
   }
 
-  public static getAngle(a: { x: number, y: number }, b: { x: number, y: number }): number {
+  public static getAngle(a: { x: number, y: number; }, b: { x: number, y: number; }): number {
     return Math.atan2(b.y - a.y, b.x - a.x);
   }
 
-  public static getAngleDeg(a: { x: number, y: number }, b: { x: number, y: number }): number {
+  public static getAngleDeg(a: { x: number, y: number; }, b: { x: number, y: number; }): number {
     return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
   }
 
@@ -405,7 +429,7 @@ export class PointerUtils {
     return evt;
   }
 
-  public static changeEventCoords(e: PointerEvent, pos: { x: number, y: number }): Promise<PointerEvent> {
+  public static changeEventCoords(e: PointerEvent, pos: { x: number, y: number; }): Promise<PointerEvent> {
     const evt = new PointerEvent(e.type, {
       ...e,
       clientX: pos.x,

@@ -25,11 +25,11 @@ export class Draggable {
   private eventTarget: EventTarget;
   private mPose: {
     x: number,
-    y: number
+    y: number;
   } = { y: 0, x: 0 };
   private elementPos: {
     x: number,
-    y: number
+    y: number;
   } = { y: 0, x: 0 };
   private mousePressed: boolean;
   private boundingBox: {
@@ -40,15 +40,15 @@ export class Draggable {
     left: number,
     right: number,
     top: number,
-    bottom: number
+    bottom: number;
   };
   private offsetCoords: {
     top: number,
-    left: number
+    left: number;
   } = { top: 0, left: 0 };
   private pageCoords: {
     x: number,
-    y: number
+    y: number;
   } = { x: 0, y: 0 };
   private animationFrame: number;
   private lastUpdatedTs: number;
@@ -59,7 +59,7 @@ export class Draggable {
   private options: DraggableOptions;
   private scroll: {
     x: number,
-    y: number
+    y: number;
   } = { x: 0, y: 0 };
   private initialScroll = {
     x: 0,
@@ -69,7 +69,7 @@ export class Draggable {
   private waitTimeout: number;
   private events = new EventEmitter();
   private previousClasses: string[] = [];
-  private get calcPos(): { x: number, y: number } {
+  private get calcPos(): { x: number, y: number; } {
     return {
       x: this.round(Math.max(-this.initialOffset.x - this.initialScroll.x, Math.min(this.options.maxX - this.boundingBox.width, this.mPose.x - this.initialOffset.x + this.offsetCoords.left)), this.options.grid),
       y: this.round(Math.max(-this.initialOffset.y - this.initialScroll.y, Math.min(this.options.maxY - this.boundingBox.height, this.mPose.y - this.initialOffset.y + this.offsetCoords.top)), this.options.grid)
@@ -80,7 +80,7 @@ export class Draggable {
   private lastUpdate = 0;
   private dropElements: HTMLElement[];
   public initialized = false;
-  public links: Map<string, { link: Link, index: number }>;
+  public links: Map<string, { link: Link, index: number; }>;
   private disabled;
   private mutationObserver;
 
@@ -96,29 +96,29 @@ export class Draggable {
     return this.eventType === 'touchstart' || this.eventType === 'touchmove' || this.eventType === 'touchend';
   }
 
-  public get posError(): { x: number, y: number } {
+  public get posError(): { x: number, y: number; } {
     return {
       x: Math.abs(this.elementPos.x + this.initialOffset.x - this.mPose.x - this.offsetCoords.left),
       y: Math.abs(this.elementPos.y + this.initialOffset.y - this.mPose.y - this.offsetCoords.top)
     };
   }
 
-  public get interactionPos(): { x: number, y: number } {
+  public get interactionPos(): { x: number, y: number; } {
     return this.mPose;
   }
 
-  public get transformCoords(): { x: number, y: number } {
+  public get transformCoords(): { x: number, y: number; } {
     return {
       x: this.round(this.elementPos.x, this.options.grid),
       y: this.round(this.elementPos.y, this.options.grid)
     };
   }
 
-  public get boundaries(): { x: number, y: number, width: number, height: number, left: number, right: number, top: number, bottom: number } {
+  public get boundaries(): { x: number, y: number, width: number, height: number, left: number, right: number, top: number, bottom: number; } {
     return this.boundingBox;
   }
 
-  public get relativeOffset(): { x: number, y: number } {
+  public get relativeOffset(): { x: number, y: number; } {
     return {
       x: this.round(this.offsetCoords.left, this.options.grid),
       y: this.round(this.offsetCoords.top, this.options.grid)
@@ -127,17 +127,17 @@ export class Draggable {
 
   public initialOffset: {
     x: number,
-    y: number
+    y: number;
   } = { x: 0, y: 0 };
 
-  public get elementCoords(): { x: number, y: number } {
+  public get elementCoords(): { x: number, y: number; } {
     return {
       x: this.initialOffset.x + this.transformCoords.x + this.initialScroll.x,
       y: this.initialOffset.y + this.transformCoords.y + this.initialScroll.y
     };
   }
 
-  public get nonCorrectedPos(): { x: number, y: number } {
+  public get nonCorrectedPos(): { x: number, y: number; } {
     return {
       x: this.round(this.mPose.x + this.initialOffset.x, this.options.grid),
       y: this.round(this.mPose.y + this.initialOffset.y, this.options.grid)
@@ -156,7 +156,7 @@ export class Draggable {
   //
   //
 
-  constructor(element: HTMLElement | string, options: DraggableOptions = {}) {
+  constructor (element: HTMLElement | string, options: DraggableOptions = {}) {
     this.options = {
       maxX: Infinity,
       maxY: Infinity,
@@ -168,7 +168,7 @@ export class Draggable {
       grid: 1,
       frameRate: 120,
       dropEl: null,
-      initialCoords: { x: 0, y: 0 },
+      initialCoords: { x: -1, y: -1 },
       id: Date.now(),
       ...options
     };
@@ -177,7 +177,7 @@ export class Draggable {
     this.element['__taptap'] = this;
     this.id = this.options.id;
     this.parent = PointerUtils.getScrollableParent(this.element);
-    this.links = new Map<string, { link: Link, index: number }>();
+    this.links = new Map<string, { link: Link, index: number; }>();
 
     this.initialScroll = {
       x: this.parent.scrollLeft,
@@ -194,8 +194,8 @@ export class Draggable {
       this.dropElements = Array.from(document.querySelectorAll(this.options.dropEl as string));
     }
 
-    this.initDoc()
-      .then(this.getInitialDimentions.bind(this))
+    this.getInitialDimentions()
+      .then(this.initDoc.bind(this))
       .then(this.calculateoffsetCoords.bind(this))
       .then(this.getPos.bind(this))
       .then(this.setPos.bind(this))
@@ -233,10 +233,12 @@ export class Draggable {
   private initDoc(): Promise<Draggable> {
     return new Promise((resolve) => {
 
+
       this.pageCoords = {
         x: this.options.initialCoords.x,
         y: this.options.initialCoords.y
       };
+
 
       const mouseUpdateFn = (event: MouseEvent) => {
         this.pageCoords = {
@@ -360,10 +362,18 @@ export class Draggable {
 
   private initElement(): Promise<Draggable> {
     return new Promise((resolve) => {
-      if (!this.elementPosition) this.elementPosition = this.element.style.position;
+      if (!this.elementPosition) this.elementPosition = getComputedStyle(this.element).position;
       this.element.style.position = 'absolute';
-      this.element.style.left = '0px';
-      this.element.style.top = '0px';
+      if (this.elementPosition == 'absolute' || this.elementPosition == 'fixed') {
+        console.log('element is absolute');
+        // this.element.style.top = `0px`;
+        // this.element.style.left = `0px`;
+      }
+      else {
+        console.log('element is not absolute or fixed');
+        this.element.style.left = `${this.elementCoords.x}px`;
+        this.element.style.top = `${this.elementCoords.y}px`;
+      }
       this.element.style.transform = `translate3d(${this.transformCoords.x}px, ${this.transformCoords.y}px, 0)`;
       this.element.classList.add('taptap-elmnt');
       resolve(this);
@@ -708,7 +718,7 @@ export class Draggable {
   }
 
   //get draggable from cursor position
-  public static getDraggableFromPoint(pos: { x: number, y: number }): Promise<Draggable> {
+  public static getDraggableFromPoint(pos: { x: number, y: number; }): Promise<Draggable> {
     return new Promise((resolve) => {
       let elmt = document.elementFromPoint(pos.x, pos.y);
       while (elmt && !elmt.classList.contains('taptap-elmnt')) {
@@ -718,7 +728,7 @@ export class Draggable {
     });
   }
 
-  public static spawnPoint(pos: { x: number, y: number }, options: DraggableOptions = {}): Promise<Draggable> {
+  public static spawnPoint(pos: { x: number, y: number; }, options: DraggableOptions = {}): Promise<Draggable> {
     return new Promise(async (resolve) => {
       const el = document.createElement('div');
       el.style.width = '0px';
@@ -738,7 +748,7 @@ export class Draggable {
     });
   }
 
-  public static spawnActivePoint(pos: { x: number, y: number }, options: DraggableOptions = {}): Promise<Draggable> {
+  public static spawnActivePoint(pos: { x: number, y: number; }, options: DraggableOptions = {}): Promise<Draggable> {
     return new Promise(async (resolve) => {
       const el = document.createElement('div');
       el.style.width = '0px';
@@ -813,7 +823,7 @@ export class Draggable {
     });
   }
 
-  public debugBoxMove(coords: { x: number, y: number }): Promise<Draggable> {
+  public debugBoxMove(coords: { x: number, y: number; }): Promise<Draggable> {
     return new Promise((resolve) => {
       this.debugBoxEl.style.left = `${coords.x}px`;
       this.debugBoxEl.style.top = `${coords.y}px`;
