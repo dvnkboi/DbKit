@@ -365,12 +365,10 @@ export class Draggable {
       if (!this.elementPosition) this.elementPosition = getComputedStyle(this.element).position;
       this.element.style.position = 'absolute';
       if (this.elementPosition == 'absolute' || this.elementPosition == 'fixed') {
-        console.log('element is absolute');
         // this.element.style.top = `0px`;
         // this.element.style.left = `0px`;
       }
       else {
-        console.log('element is not absolute or fixed');
         this.element.style.left = `${this.elementCoords.x}px`;
         this.element.style.top = `${this.elementCoords.y}px`;
       }

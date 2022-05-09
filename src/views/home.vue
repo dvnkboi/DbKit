@@ -1,6 +1,6 @@
 <template>
-  <div class="w-full h-screen bg-grayish-900 text-grayish-200">
-    <div class="absolute h-screen w-screen z-0">
+  <div class="w-full h-screen bg-grayish-900 text-grayish-200 overflow-hidden relative">
+    <div class="fixed h-screen w-screen z-0">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="h-full w-full scale-75 overflow-visible"
         preserveAspectRatio="xMidYMid slice">
         <defs>
@@ -74,7 +74,7 @@
     </div>
     <router-link to="/designer">
       <div ref="designerLink"
-        class="flex justify-start items-center px-2 py-1 bg-blue-600 rounded-xl absolute bottom-10 right-10 text-grayish-50 gap-2 font-semibold group hover:-translate-y-1 transition duration-300 opacity-0 translate-y-2">
+        class="flex justify-start items-center px-2 py-1 bg-blue-600 rounded-xl absolute bottom-[10%] right-[10%] text-grayish-50 gap-2.5 font-semibold group hover:-translate-y-1 transform transition duration-300 opacity-0">
         <h1 class="group-hover:-translate-y-0.5 transition-transform duration-300">Get started</h1>
         <i class="ri-arrow-right-line group-hover:-translate-y-0.5 transition-transform duration-300"></i>
       </div>
@@ -83,7 +83,8 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick, watch, } from 'vue';
+import { useRoute } from 'vue-router';
 import Draggable from '../lib/draggable';
 
 const entityDesigner = ref(null);
@@ -93,32 +94,55 @@ const tryItText = ref(null);
 const designerLink = ref(null);
 let taptapDesigner: Draggable = null;
 let taptapTryIt: Draggable = null;
+const route = useRoute();
+let intoTimeout = null;
+
+watch(route, (newRoute) => {
+  console.log(newRoute);
+}, {
+  deep: true
+});
 
 
 onMounted(() => {
   taptapDesigner = new Draggable(entityDesigner.value, {
-    easeTime: 0.05
+    easeTime: 0.05,
+    maxX: document.body.clientWidth,
+    maxY: document.body.clientHeight,
   });
   taptapTryIt = new Draggable(tryIt.value, {
-    easeTime: 0.08
+    easeTime: 0.08,
+    maxX: document.body.clientWidth,
+    maxY: document.body.clientHeight,
   });
 
   nextTick(() => {
     entityText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
     tryItText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
     designerLink.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    designerLink.value.style.transform = 'translateY(15px)';
   });
 
 
-  setTimeout(() => {
+  intoTimeout = setTimeout(() => {
     entityText.value.style.opacity = 1;
     tryItText.value.style.opacity = 1;
     entityText.value.style.transform = 'translateY(0px)';
     tryItText.value.style.transform = 'translateY(0px)';
     designerLink.value.style.opacity = 1;
     designerLink.value.style.transform = 'translateY(0px)';
+    setTimeout(() => {
+      designerLink.value.style.transform = '';
+      designerLink.value.style.transition = 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1)';
+    }, 2500);
   }, 5000);
 
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(intoTimeout);
+  taptapDesigner.destroy();
+  taptapTryIt.destroy();
 });
 
 
