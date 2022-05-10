@@ -1,5 +1,5 @@
 <template>
-  <router-view></router-view>
+  <router-view />
 </template>
 
 <style>
@@ -13,7 +13,7 @@
 body,
 html,
 #app {
-  @apply bg-gray-900;
+  @apply bg-grayish-900 overflow-hidden;
 }
 
 * {
@@ -52,4 +52,14 @@ html,
 *:disabled {
   @apply opacity-50 cursor-not-allowed;
 }
+
+
+.fade-x-enter-from{
+  @apply opacity-0 translate-x-5;
+}
+
+.fade-x-leave-to{
+  @apply opacity-0 -translate-x-5;
+}
+
 </style>
