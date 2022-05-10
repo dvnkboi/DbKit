@@ -6,7 +6,7 @@
       <h1 :class="{ 'bg-grayish-700 w-10 h-[1rem] max-h-[1rem]': entity.name == '' }"
         class="text-2xl font-bold mx-5 cursor-pointer transition-all duration-300 rounded-md w-fit h-8">
         {{
-        entity.name
+            entity.name
         }}</h1>
       <div
         class="property flex justify-start items-start flex-col px-2 py-2 w-full transition duration-300 -mt-2 pointer-events-none">
@@ -17,7 +17,7 @@
             <div v-show="prop.constraints[constraint] == true" :key="constraint"
               v-for="constraint in Object.keys(prop.constraints)" :class="[constraintColors[constraint]]"
               class="constraint text-[0.6rem] pb-px px-0.5 rounded-[0.25rem] text-white transition duration-300">{{
-              constraint
+                  constraint
               }}</div>
             <div
               class="constraint absolute right-1 top-0 bottom-0 flex justify-center items-center text-xs text-grayish-50 font-semibold transition duration-300">

@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-screen bg-grayish-900 text-grayish-200 overflow-hidden relative">
+  <div :key="rerender" class="w-full h-screen bg-grayish-900 text-grayish-200 overflow-hidden relative">
     <div class="fixed h-screen w-screen z-0">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="h-full w-full scale-75 overflow-visible"
         preserveAspectRatio="xMidYMid slice">
@@ -83,36 +83,27 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick, Ref } from 'vue';
 import Draggable from '../lib/draggable';
 import { setIfNotExists, getWithExpiry } from '../lib/localStorage';
 
-const entityDesigner = ref(null);
-const tryIt = ref(null);
-const entityText = ref(null);
-const tryItText = ref(null);
-const designerLink = ref(null);
+const entityDesigner: Ref<HTMLElement> = ref(null);
+const tryIt: Ref<HTMLElement> = ref(null);
+const entityText: Ref<HTMLElement> = ref(null);
+const tryItText: Ref<HTMLElement> = ref(null);
+const designerLink: Ref<HTMLElement> = ref(null);
 let taptapDesigner: Draggable = null;
 let taptapTryIt: Draggable = null;
+const rerender = ref(Date.now());
+
 
 let intoTimeout = null;
 let introBtnTimeout = null;
 
 onMounted(() => {
+  rerender.value = Date.now();
   const animate = !getWithExpiry('introPlayed');
   setIfNotExists('introPlayed', true, 604800000);
-
-  taptapDesigner = new Draggable(entityDesigner.value, {
-    easeTime: 0.05,
-    maxX: document.body.clientWidth,
-    maxY: document.body.clientHeight,
-  });
-  taptapTryIt = new Draggable(tryIt.value, {
-    easeTime: 0.08,
-    maxX: document.body.clientWidth,
-    maxY: document.body.clientHeight,
-  });
-
   nextTick(() => {
     if (animate) {
       entityText.value.style.transition = 'opacity 2.5s cubic-bezier(0.4, 0, 0.2, 1), transform 2.5s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -130,12 +121,24 @@ onMounted(() => {
 
 
   intoTimeout = setTimeout(() => {
-    entityText.value.style.opacity = 1;
-    tryItText.value.style.opacity = 1;
+    entityText.value.style.opacity = '1';
+    tryItText.value.style.opacity = '1';
     entityText.value.style.transform = 'translateY(0px)';
     tryItText.value.style.transform = 'translateY(0px)';
-    designerLink.value.style.opacity = 1;
+    designerLink.value.style.opacity = '1';
     designerLink.value.style.transform = 'translateY(0px)';
+
+    taptapDesigner = new Draggable(entityDesigner.value, {
+      easeTime: 0.05,
+      maxX: document.body.clientWidth,
+      maxY: document.body.clientHeight,
+    });
+    taptapTryIt = new Draggable(tryIt.value, {
+      easeTime: 0.08,
+      maxX: document.body.clientWidth,
+      maxY: document.body.clientHeight,
+    });
+
     introBtnTimeout = setTimeout(() => {
       designerLink.value.style.transform = '';
       designerLink.value.style.transition = 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1), transform 300ms cubic-bezier(0.4, 0, 0.2, 1)';
@@ -147,8 +150,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearTimeout(intoTimeout);
   clearTimeout(introBtnTimeout);
-  taptapDesigner.destroy();
-  taptapTryIt.destroy();
+  taptapDesigner?.destroy();
+  taptapTryIt?.destroy();
+  entityDesigner.value.remove();
+  tryIt.value.remove();
 });
 
 
