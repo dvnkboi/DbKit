@@ -1,5 +1,6 @@
 <template>
-  <div :key="rerender" class="w-full h-screen bg-grayish-900 text-grayish-200 overflow-hidden relative">
+  <div class="w-full h-screen bg-grayish-900 text-grayish-200 overflow-hidden relative">
+    <RightClick class="text-grayish-900"/>
     <div class="fixed h-screen w-screen z-0">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="h-full w-full scale-75 overflow-visible"
         preserveAspectRatio="xMidYMid slice">
@@ -61,12 +62,12 @@
       Terminal Ape
     </div>
     <div class="flex justify-start items-start flex-col gap-5 pt-32 pl-32 z-50">
-      <div ref="entityDesigner" class="text-9xl font-bold max-w-min mix-blend-exclusion overflow-hidden">
+      <div ref="entityDesigner" class="text-9xl font-bold max-w-min mix-blend-exclusion overflow-hidden absolute">
         <h1 ref="entityText" class="cursor-grab opacity-0 -translate-y-4">
           Your entity designer is here
         </h1>
       </div>
-      <div ref="tryIt" class="text-4xl mix-blend-exclusion overflow-hidden">
+      <div ref="tryIt" class="text-4xl mix-blend-exclusion overflow-hidden absolute top-[44rem]">
         <h2 ref="tryItText" class="cursor-grab opacity-0 -translate-y-4">
           Try it out now
         </h2>
@@ -86,6 +87,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, Ref } from 'vue';
 import Draggable from '../lib/draggable';
 import { setIfNotExists, getWithExpiry } from '../lib/localStorage';
+import RightClick from '../components/rightClick.vue';
 
 const entityDesigner: Ref<HTMLElement> = ref(null);
 const tryIt: Ref<HTMLElement> = ref(null);
@@ -94,14 +96,12 @@ const tryItText: Ref<HTMLElement> = ref(null);
 const designerLink: Ref<HTMLElement> = ref(null);
 let taptapDesigner: Draggable = null;
 let taptapTryIt: Draggable = null;
-const rerender = ref(Date.now());
 
 
 let intoTimeout = null;
 let introBtnTimeout = null;
 
 onMounted(() => {
-  rerender.value = Date.now();
   const animate = !getWithExpiry('introPlayed');
   setIfNotExists('introPlayed', true, 604800000);
   nextTick(() => {
