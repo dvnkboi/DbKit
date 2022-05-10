@@ -1,40 +1,69 @@
 <template>
-  <div ref="draggable" class="absolute left-0 transition-opacity duration-500">
-    <div :class="{ 'ring-blue-500': getSelection === entity.id, 'ring-transparent': getSelection != entity.id }"
-      class="entity rounded-3xl bg-grayish-800 flex justify-start items-start flex-col pt-2 pb-2 w-fit min-w-[16rem] shadow-2xl relative transition duration-300 text-grayish-200 ring-2">
+  <div
+    ref="draggable"
+    class="absolute left-0 transition-opacity duration-500"
+  >
+    <div
+      :class="{ 'ring-blue-500': getSelection === entity.id, 'ring-transparent': getSelection != entity.id }"
+      class="entity rounded-3xl bg-grayish-800 flex justify-start items-start flex-col pt-2 pb-2 w-fit min-w-[16rem] shadow-2xl relative transition duration-300 text-grayish-200 ring-2"
+    >
       <!-- <div class="absolute top-2 right-2 text-xs">entity</div> -->
-      <h1 :class="{ 'bg-grayish-700 w-10 h-[1rem] max-h-[1rem]': entity.name == '' }"
-        class="text-2xl font-bold mx-5 cursor-pointer transition-all duration-300 rounded-md w-fit h-8">
+      <h1
+        :class="{ 'bg-grayish-700 w-10 h-[1rem] max-h-[1rem]': entity.name == '' }"
+        class="text-2xl font-bold mx-5 cursor-pointer transition-all duration-300 rounded-md w-fit h-8"
+      >
         {{
-            entity.name
-        }}</h1>
+          entity.name
+        }}
+      </h1>
       <div
-        class="property flex justify-start items-start flex-col px-2 py-2 w-full transition duration-300 -mt-2 pointer-events-none">
-        <transition-group name="fade-height" appear>
-          <div :key="prop.name" v-for="prop in entity.properties"
-            class="prop-info flex justify-start items-start gap-1 bg-grayish-700 shadow-lg rounded-lg w-full mt-2 py-0.5 px-2 h-8 transition-all duration-300 transform pr-12 overflow-hidden  pointer-events-auto">
-            <h2 class="text-base">{{ prop.name }} : {{ prop.type }}</h2>
-            <div v-show="prop.constraints[constraint] == true" :key="constraint"
-              v-for="constraint in Object.keys(prop.constraints)" :class="[constraintColors[constraint]]"
-              class="constraint text-[0.6rem] pb-px px-0.5 rounded-[0.25rem] text-white transition duration-300">{{
-                  constraint
-              }}</div>
+        class="property flex justify-start items-start flex-col px-2 py-2 w-full transition duration-300 -mt-2 pointer-events-none"
+      >
+        <transition-group
+          name="fade-height"
+          appear
+        >
+          <div
+            v-for="prop in entity.properties"
+            :key="prop.name"
+            class="prop-info flex justify-start items-start gap-1 bg-grayish-700 shadow-lg rounded-lg w-full mt-2 py-0.5 px-2 h-8 transition-all duration-300 transform pr-12 overflow-hidden  pointer-events-auto"
+          >
+            <h2 class="text-base">
+              {{ prop.name }} : {{ prop.type }}
+            </h2>
             <div
-              class="constraint absolute right-1 top-0 bottom-0 flex justify-center items-center text-xs text-grayish-50 font-semibold transition duration-300">
-              <div v-if="prop.name != '_id'" @click="removeProp(prop.name)"
-                class="bg-red-500 rounded-md flex justify-center items-center w-5 h-5 transition duration-300 group hover:-translate-y-px cursor-pointer">
-                <i class="ri-close-line -mr-px font-normal group-hover:-translate-y-px transition duration-300"></i>
+              v-for="constraint in Object.keys(prop.constraints)"
+              v-show="prop.constraints[constraint] == true"
+              :key="constraint"
+              :class="[constraintColors[constraint]]"
+              class="constraint text-[0.6rem] pb-px px-0.5 rounded-[0.25rem] text-white transition duration-300"
+            >
+              {{
+                constraint
+              }}
+            </div>
+            <div
+              class="constraint absolute right-1 top-0 bottom-0 flex justify-center items-center text-xs text-grayish-50 font-semibold transition duration-300"
+            >
+              <div
+                v-if="prop.name != '_id'"
+                class="bg-red-500 rounded-md flex justify-center items-center w-5 h-5 transition duration-300 group hover:-translate-y-px cursor-pointer"
+                @click="removeProp(prop.name)"
+              >
+                <i class="ri-close-line font-normal group-hover:-translate-y-px transition duration-300" />
               </div>
             </div>
           </div>
         </transition-group>
 
-        <div @click.stop.prevent="pushProperty"
-          class="button flex justify-center items-center gap-1 mt-2 bg-blue-800 shadow-lg rounded-lg h-7 px-2 w-full font-semibold cursor-pointer group transform hover:-translate-y-0.5 transition duration-300  pointer-events-auto">
+        <div
+          class="button flex justify-center items-center gap-1 mt-2 bg-blue-800 shadow-lg rounded-lg h-7 px-2 w-full font-semibold cursor-pointer group transform hover:-translate-y-0.5 transition duration-300  pointer-events-auto"
+          @click.stop.prevent="pushProperty"
+        >
           <h2 class="group-hover:-translate-y-0.5 transform transition-transform duration-300">
             add property
           </h2>
-          <i class="ri-add-fill group-hover:-translate-y-0.5 transform transition-transform duration-300"></i>
+          <i class="ri-add-fill group-hover:-translate-y-0.5 transform transition-transform duration-300" />
         </div>
       </div>
     </div>
@@ -44,7 +73,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Draggable } from "../lib/draggable";
+import { Draggable } from '../lib/draggable';
 import PointerUtils from '../lib/pointerUtils';
 import { useEntities } from '../store/useEntities';
 const entityStore = useEntities();
@@ -64,7 +93,7 @@ const constraintColors = {
 interface Props {
   event?: MouseEvent;
   index?: number;
-  id?: string | number;
+  id?: string;
 }
 
 const emit = defineEmits(['initialized', 'linked', 'destroyed']);

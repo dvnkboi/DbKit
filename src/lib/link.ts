@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import Draggable from './draggable';
 import { TextOptions } from './linkOptions';
 import Options from './linkOptions';
+import PointerUtils from './pointerUtils';
 
 export class Link {
   // create svg link between two elements with
@@ -18,15 +19,15 @@ export class Link {
   }
   private svg: SVGElement;
   private path: SVGPathElement;
-  private startCoords: { x: number, y: number } = { x: 0, y: 0 };
-  private endCoords: { x: number, y: number } = { x: 0, y: 0 };
-  private curveStartCoords: { x: number, y: number } = { x: 0, y: 0 };
-  private curveEndCoords: { x: number, y: number } = { x: 0, y: 0 };
-  private offsetStart: { x: number, y: number } = { x: 0, y: 0 };
-  private offsetEnd: { x: number, y: number } = { x: 0, y: 0 };
-  private previousStartDiff: { x: number, y: number } = { x: 0, y: 0 };
-  private previousEndDiff: { x: number, y: number } = { x: 0, y: 0 };
-  private previousStartSide: { start: { x: number, y: number, side: string }, end: { x: number, y: number, side: string } } = { start: { x: 0, y: 0, side: 'left' }, end: { x: 0, y: 0, side: 'right' } };
+  private startCoords: { x: number, y: number; } = { x: 0, y: 0 };
+  private endCoords: { x: number, y: number; } = { x: 0, y: 0 };
+  private curveStartCoords: { x: number, y: number; } = { x: 0, y: 0 };
+  private curveEndCoords: { x: number, y: number; } = { x: 0, y: 0 };
+  private offsetStart: { x: number, y: number; } = { x: 0, y: 0 };
+  private offsetEnd: { x: number, y: number; } = { x: 0, y: 0 };
+  private previousStartDiff: { x: number, y: number; } = { x: 0, y: 0 };
+  private previousEndDiff: { x: number, y: number; } = { x: 0, y: 0 };
+  private previousStartSide: { start: { x: number, y: number, side: string; }, end: { x: number, y: number, side: string; }; } = { start: { x: 0, y: 0, side: 'left' }, end: { x: 0, y: 0, side: 'right' } };
   private options: Options;
   private insertedSvg = false;
   private lastSideSwitchTs = 0;
@@ -38,15 +39,15 @@ export class Link {
   private linkMidElDimensions: DOMRect;
   private events = new EventEmitter();
   public forceUpdate = false;
-  private get svgPath(): { d: string } {
+  private get svgPath(): { d: string; } {
     return {
       d: `M ${this.startCoords.x},${this.startCoords.y} C ${this.curveStartCoords.x},${this.curveStartCoords.y},${this.curveEndCoords.x},${this.curveEndCoords.y} ${this.endCoords.x},${this.endCoords.y}`
     };
   }
 
   private get hookSide(): {
-    start: { x: number, y: number, side: string },
-    end: { x: number, y: number, side: string }
+    start: { x: number, y: number, side: string; },
+    end: { x: number, y: number, side: string; };
   } {
     const diff = {
       x: this.end.elementCoords.x - this.start.elementCoords.x,
@@ -62,8 +63,8 @@ export class Link {
     this.previousStartDiff = diff;
     this.lastSideSwitchTs = Date.now();
 
-    const startSideOffset = this.startLinkIndex / 5;
-    const endSideOffset = this.endLinkIndex / 5;
+    const startSideOffset = this.start.links.size <= 1 ? 0.5 : this.startLinkIndex / this.start.links.size;
+    const endSideOffset = this.end.links.size <= 1 ? 0.5 : this.endLinkIndex / this.end.links.size;
 
     if (Math.abs(diff.x) > Math.abs(diff.y)) {
       if (diff.x > 0.1) {
@@ -132,9 +133,9 @@ export class Link {
   }
 
   private get hookElements(): {
-    start: { x: number, y: number },
-    end: { x: number, y: number },
-    mid: { x: number, y: number }
+    start: { x: number, y: number; },
+    end: { x: number, y: number; },
+    mid: { x: number, y: number; };
   } {
     const hookside = this.hookSide;
 
@@ -216,7 +217,7 @@ export class Link {
     return this.options.linkMidText.text;
   }
 
-  constructor(options: Options = {}) {
+  constructor (options: Options = {}) {
     this.options = {
       fill: 'none',
       stroke: '#000',
@@ -463,6 +464,10 @@ export class Link {
         resolve(link);
       });
     });
+  }
+
+  public detach(): void {
+    this.destroy();
   }
 
   public attachStart(draggable: Draggable): Promise<Link> {

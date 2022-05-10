@@ -5,12 +5,12 @@ interface Property {
   type: string;
   constraints?: {
     [prop in keyof Constraint]?: boolean
-  }
+  };
 }
 
 interface Relation {
   name?: string;
-  entity: number | string;
+  entity: string;
   type: 'one' | 'many';
 }
 
@@ -23,7 +23,7 @@ interface Constraint {
 }
 
 interface EntityOptions {
-  id?: string | number;
+  id?: string;
   name?: string;
   properties?: Property[];
   relations?: Relation[];
@@ -96,11 +96,14 @@ export const useEntities = defineStore("entityStore", {
           ...relation
         };
         entity.relations.push(relWithDefaults);
-        console.log(relWithDefaults);
       }
     },
     deleteProp(id: string | number, propName: string): void {
       this.entities.get(id).properties = this.entities.get(id).properties.filter(prop => prop.name !== propName);
+    },
+    deleteRelation(entityFrom: string | number, entityTo: string): void {
+      this.entities.get(entityFrom).relations = this.entities.get(entityFrom).relations.filter(rel => rel.entity !== entityTo);
+      this.entities.get(entityTo).relations = this.entities.get(entityTo).relations.filter(rel => rel.entity !== entityFrom);
     },
     selectEntity(id): void {
       this.selectedEntity = id;

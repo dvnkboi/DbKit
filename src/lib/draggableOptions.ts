@@ -14,7 +14,7 @@ interface DraggableOptions {
     x: number;
     y: number;
   };
-  id?: string | number;
+  id?: string;
 }
 
 export default DraggableOptions;

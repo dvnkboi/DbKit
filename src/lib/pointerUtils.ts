@@ -383,6 +383,10 @@ export class PointerUtils {
     return Math.min(Math.max(value, min), max);
   }
 
+  public static map(value: number, min: number, max: number, newMin: number, newMax: number): number {
+    return newMin + (newMax - newMin) * (value - min) / (max - min);
+  }
+
   public static click(x: number, y: number): MouseEvent {
     const evt = new MouseEvent('click', {
       clientX: x,

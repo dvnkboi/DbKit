@@ -14,9 +14,11 @@ export class Draggable {
   //
   //
 
+  public static draggables = new Map<string, Draggable>();
+
   private parent: HTMLElement;
   private element: HTMLElement;
-  public readonly id: number | string;
+  public readonly id: string;
   private elementPosition: string;
   private elementSelect: string;
   private isPoint = false;
@@ -169,7 +171,7 @@ export class Draggable {
       frameRate: 120,
       dropEl: null,
       initialCoords: { x: -1, y: -1 },
-      id: Date.now(),
+      id: Date.now().toString(),
       ...options
     };
 
@@ -178,6 +180,7 @@ export class Draggable {
     this.id = this.options.id;
     this.parent = PointerUtils.getScrollableParent(this.element);
     this.links = new Map<string, { link: Link, index: number; }>();
+    Draggable.draggables.set(this.id, this);
 
     this.initialScroll = {
       x: this.parent.scrollLeft,
@@ -520,9 +523,10 @@ export class Draggable {
       const id = this.generateLinkId(sender);
       if (this.links.has(id)) resolve(this);
       else {
-        this.links.set(id, { link, index: this.links.size + 1 });
+        this.links.set(id, { link, index: this.links.size });
         this.attached.set(sender.id, sender);
         this.emit('linked', sender).then(resolve.bind(this, sender));
+        this.updateLinkPositions();
       }
     });
   }
@@ -541,6 +545,7 @@ export class Draggable {
         elmt.receiveLink(this, link);
         this.attached.set(elmt.id, elmt);
         this.emit('linked', elmt).then(resolve.bind(this, elmt));
+        this.updateLinkPositions();
       }
     });
   }
@@ -557,6 +562,22 @@ export class Draggable {
       await linkMap.link.update();
       linkMap.link.forceUpdate = false;
     });
+  }
+
+  public detachFrom(elmt: Draggable): Promise<Draggable> {
+    return new Promise((resolve) => {
+      const id = this.generateLinkId(elmt);
+      if (this.links.has(id)) {
+        const link = this.links.get(id).link;
+        link.detach();
+        this.links.delete(id);
+        this.attached.delete(elmt.id);
+        this.emit('unlinked', elmt).then(resolve.bind(this, elmt));
+        this.updateLinkPositions();
+      }
+      else resolve(this);
+    }
+    );
   }
 
   //
@@ -791,6 +812,7 @@ export class Draggable {
     this.events.removeAllListeners('up');
     this.events.removeAllListeners('moving');
     this.events.removeAllListeners('hold');
+    Draggable.draggables.delete(this.id);
     if (this.isPoint) this.element.remove();
     this.emit('destroy');
   }
